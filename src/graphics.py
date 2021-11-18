@@ -116,6 +116,8 @@ def appStarted(app):
     app.mobs = [dragon,ghost]
     for mob in app.mobs:
         mobImageInit(mob,app)
+    #app.switchRoomOverlay = makeTranslucentRectangle(app, app.width, app.height, fill = "black", opacity = .1*app.newRoom)
+
 
 def redrawAll(app,canvas):
     # --background
@@ -139,8 +141,13 @@ def redrawAll(app,canvas):
             canvas.create_oval(proj.cx-5,proj.cy-5,proj.cx+5,proj.cy+5, fill = "white")
     # screen for room switch
     if app.newRoom > 0:
-        canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
+        canvas.create_rectangle(0,0,app.width,app.height, image = app.switchRoomOverlay)
 
+# CITATION: Kian Nassre
+def makeTranslucentRectangle(app, width, height, fill, opacity):
+  fill = app.root.winfo_rgb(fill) + (int(255*opacity),)
+  image = Image.new('RGBA', (width, height), fill)
+  return ImageTk.PhotoImage(image)
 
 # IMAGE CITATION: 
 # character sprite: https://www.pngegg.com/en/png-nehup
@@ -173,6 +180,7 @@ def initImages(app):
             sprite = app.charSprite.crop((topLeftX,topLeftY,botRightX,botRightY))
             tempSprites.append(sprite)
         app.sprites[newDir] = tempSprites
+    app.charWidth, app.charHeight = app.sprites["left"][0].size
 
 
 def timerFired(app):
@@ -194,8 +202,17 @@ def timerFired(app):
         mob.spriteCounter = (mob.spriteCounter + 1) % 8
         mob.move(app,7)
         mob.atk(app,10)
-        for proj in mob.proj:
+        k = 0
+        while k < len(mob.proj):
+            proj = mob.proj[k]
             proj.move(app)
+            if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
+                (proj.cx + 5) <= (app.charX + app.charWidth/2) and
+                (proj.cy + 5) >= (app.charY - app.charHeight/2) and
+                (proj.cy + 5) <= (app.charY + app.charHeight/2)):
+                mob.proj.pop(k)
+            else:
+                k += 1
         j = 0
         while j < len(app.charProj):
             proj = app.charProj[j]
