@@ -18,7 +18,7 @@ from cmu_112_graphics import *
 ################################################
 # My code
 
-
+#
 class DungeonRoom(object):
     # can potentially add rounds of mobs
     def __init__(self,mobs,loot,walls):
@@ -55,6 +55,9 @@ potionRoom = DungeonRoom(None,None,(1,1,1,1))
 leftBossRoom = BossRoom("Boss","bossLoot",(0,1,0,0))
 
 rightBossRoom = BossRoom("Boss","bossLoot",(0,0,0,1))
+testRoom = DungeonRoom(None,None,(1,1,0,1))
+testRoom.background = "stoneBG.png"
+
 
 shopRoom1 = DungeonRoom(None,None,(0,1,0,0))
 shopRoom2 = DungeonRoom(None,None,(0,1,0,0))
@@ -148,7 +151,7 @@ def makeFloor(map):
     else:
         startRow = 0
         startCol = 4
-    if walkable(map,startRow,startCol,(2,5)):
+    if walkable(map,startRow,startCol,(5,2)):
         return map
     else:
         for i in range(len(map)):
@@ -184,7 +187,16 @@ def walkable(map, row, col, tgt):
 # CITATION: sprite code based on class notes and Image/PIL TA Mini-Lecture
 # https://www.cs.cmu.edu/~112/notes/notes-animations-part4.html
 
+fakeMap = [[leftBossRoom, None, None,       None, shopRoom2],
+              [None,          None, None,       None, None],
+              [None,          None, potionRoom, None, None],
+              [None,          None, None,       None, None],
+              [None,          None, testRoom,       None, None],
+              [None,          testRoom, testRoom,  testRoom, None]]
+
 def appStarted(app):
+    app.map = fakeMap
+    app.curRoom = (5,2)
     app.charX = app.width//2
     app.timerDelay = 40
     app.charY = app.height//2
@@ -197,23 +209,22 @@ def appStarted(app):
     app.movingDown = False
     app.curRoomCX = app.width/2
     app.curRoomCY = app.height/2
-    app.nextRoomCX = app.width/2
-    app.nextRoomCY = app.curRoomCY + app.height
-    app.inDoor = False
+    app.newRoom = 0
     initImages(app)
 
 def redrawAll(app,canvas):
     canvas.create_image(app.curRoomCX,app.curRoomCY,image = 
                         ImageTk.PhotoImage(app.bgImage))
-    canvas.create_image(app.nextRoomCX,app.nextRoomCY,image = ImageTk.PhotoImage(app.bgImage))
     spriteImage = app.sprites[app.direction][app.spriteCounter]
     canvas.create_image(app.charX,app.charY,image = ImageTk.PhotoImage(spriteImage))
+    if app.newRoom > 0:
+        canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
 
 
-# IMAGE CITATION: None of these images are mine, I am only using them for the
-# time being until I design my own images
-# background image from The Binding of Isaac: Rebirth
+# IMAGE CITATION: 
 # character sprite: https://www.pngegg.com/en/png-nehup
+# stone background: I made this, but I used a stone brick texture -
+# (https://pahiroarts.artstation.com/projects/n3n5o) - and edited it
 def initImages(app):
     app.bgImage = app.loadImage('stoneBG.png')
     app.bgImage = app.bgImage.resize((app.width,app.height))
@@ -236,6 +247,8 @@ def initImages(app):
         app.sprites[newDir] = tempSprites
 
 def timerFired(app):
+    if app.newRoom > 0:
+        app.newRoom -= 1
     if app.isMoving:
         app.spriteCounter = (app.spriteCounter + 1) % 4
         moveChar(app,10)
@@ -245,7 +258,7 @@ def timerFired(app):
 def moveChar(app,amount):
     leftWall = app.width/12
     rightWall = 11 * app.width/12
-    topWall = 1 * app.height/8
+    topWall = app.height/8
     botWall = 7 * app.height/8
     # accounts for diagonal motion needing to move less
     if ((app.movingRight or app.movingLeft) and (app.movingUp or app.movingDown)):
@@ -259,24 +272,27 @@ def moveChar(app,amount):
         newY >= topWall and newY <= botWall):
         app.charX = newX
         app.charY = newY
-    elif newX > rightWall or newX < leftWall or newY < topWall or newY > botWall:
-        app.inDoor = True
-    if app.inDoor:  
-            app.charY -= 2*changeY
-            app.curRoomCY -= changeY
-            app.nextRoomCY -= changeY
-    elif app.movingRight or app.movingLeft and app.charY > 230 and app.charY < 270:
-            app.movingUp = False
-            app.movingDown = False
-            app.curRoomCX -= changeX
-            app.nextRoomCX -= changeX
-    elif app.movingUp or app.movingDown and app.charX > 480 and app.charX < 520:
-            app.inDoor = True
-            app.movingLeft = False
-            app.movingRight = False
+    elif newX > rightWall and app.curRoom[1] + 1 < len(app.map[0]):
+        app.charX = 1 * app.width/12 + 1
+        app.bgImage = app.loadImage(app.map[app.curRoom[0]][app.curRoom[1]+1].background)
+        app.isMoving = False
+    elif newX < leftWall and app.curRoom[1] - 1 >= 0:
+        app.charX = 11 * app.width/12 - 1
+        app.bgImage = app.loadImage(app.map[app.curRoom[0]][app.curRoom[1]-1].background)
+        app.newRoom = 10
+        app.isMoving = False
+    elif newY < topWall and app.curRoom[0] - 1 >= 0:
+        app.charY = 7 * app.height/8 - 1
+        app.bgImage = app.loadImage(app.map[app.curRoom[0]-1][app.curRoom[1]].background)
+        app.newRoom = 10
+        app.isMoving = False
+    elif newY > botWall and app.curRoom[0] + 1 < len(app.map):
+        app.charY = app.height/8 + 1
+        app.bgImage = app.loadImage(app.map[app.curRoom[0]+1][app.curRoom[1]].background)
+        app.newRoom = 10
+        app.isMoving = False
         
             
-
 # allows the character to move diagonally and not just in a straight line
 def keyPressed(app,event):
     app.isMoving = True
