@@ -1,6 +1,9 @@
 import random
 import math
 
+def distance(x0,y0,x1,y1):
+    return math.sqrt((x0-x1)**2+(y0-y1)**2)
+
 class Mob(object):
     def __init__(self,name,health):
         self.name = name
@@ -8,7 +11,7 @@ class Mob(object):
         self.spriteCounter = 0
         self.cx = random.randint(100,900)
         self.cy = random.randint(50,450)
-        self.type = "idle"
+        self.type = "walk"
         self.proj = []
 
     def gotHit(self,dmg):
@@ -20,25 +23,35 @@ class Mob(object):
         print(self.health)
     
     def move(self,app,amt):
-        charX, charY = app.charX, app.charY
-        difX = self.cx - charX
-        difY = self.cy - charY
-        angle = math.atan2(difY,difX)
-        self.cx -= amt * math.cos(angle)
-        self.cy -= amt * math.sin(angle)
+        dFromProj = []
+        for proj in app.charProj:
+            d = distance(self.cx,self.cy,proj.cx,proj.cy)
+            dFromProj.append(d)
+        if app.charProj != []:
+            dFromClosest = min(dFromProj)
+            closestProj = dFromProj.index(dFromClosest)
+        # dodges character projectiles that are close by
+        if app.charProj != [] and dFromClosest <= 50:
+            difX = self.cx - app.charProj[closestProj].cx
+            difY = self.cy - app.charProj[closestProj].cy
+            angle = math.atan2(difY,difX)
+            self.cx += amt*2 * math.cos(angle)
+            self.cy += amt*2 * math.sin(angle)
+        else:
+            charX, charY = app.charX, app.charY
+            difX = self.cx - charX
+            difY = self.cy - charY
+            angle = math.atan2(difY,difX)
+            self.cx -= amt * math.cos(angle)
+            self.cy -= amt * math.sin(angle)
 
     def atk(self,app,dmg):
         pass
 
-class Ghost(Mob):
 
+class Ghost(Mob):
     def move(self,app,amt):
-        charX, charY = app.charX, app.charY
-        difX = self.cx - charX
-        difY = self.cy - charY
-        angle = math.atan2(difY,difX)
-        self.cx -= .2 * amt * math.cos(angle)
-        self.cy -= .2 * amt * math.sin(angle)
+        self.type = "idle"
     
     def atk(self,app,dmg):
         charX, charY = app.charX, app.charY
@@ -48,8 +61,7 @@ class Ghost(Mob):
         self.proj.append(GhostTear(10,self.cx,self.cy))
         self.proj[-1].angle = angle
        
-
-
+# basic projectiles for both the player and mobs
 class Projectile(object):
     def __init__(self,strength,x,y):
         self.time = 0
@@ -69,6 +81,6 @@ class Projectile(object):
         
     
 class GhostTear(Projectile):
-    def move(self,app):
-        self.cx -= 50 * math.cos(self.angle)
-        self.cy -= 50 * math.sin(self.angle)
+    def move(self):
+        self.cx -= 15 * math.cos(self.angle)
+        self.cy -= 15 * math.sin(self.angle)

@@ -73,31 +73,17 @@ fakeMap = [[leftBossRoom, None, None,       None, shopRoom2],
               [None,          None, testRoom,       None, None],
               [None,          testRoom, testRoom,  testRoom, None]]
 
-
-# IMAGE CITATION: mob sprites from: https://analogstudios.itch.io/dungeonsprites
-def mobImageInit(mob,app):
-    mob.sprite = app.loadImage(f'{mob.name}_.png')
-    mob.sprite = app.scaleImage(mob.sprite,5)
-    mob.spriteWidth, mob.spriteHeight = mob.sprite.size
-    mob.sprites = dict()
-    for dir in ["idle0", "walk1", "run3", "jump4", "turn5", "hurt6", "death7"]:
-        index = int(dir[-1:])
-        newDir = dir[:-1]
-        topLeftY = index * mob.spriteHeight / 7
-        botRightY = (index + 1) * mob.spriteHeight / 7
-        tempSprites = []
-        for i in range(8):
-            topLeftX = mob.spriteWidth * i / 8
-            botRightX = mob.spriteWidth * (i+1) / 8
-            sprite = mob.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-            tempSprites.append(sprite)
-        mob.sprites[newDir] = tempSprites
-    mob.width,mob.height = mob.sprites["idle"][0].size
-
 def appStarted(app):
+    # map/general game mechanic variables
+    app.count = 0
+    app.timerDelay = 50
     app.map = fakeMap
     app.curRoom = (5,2)
-    app.timerDelay = 50
+    app.curRoomCX = app.width/2
+    app.curRoomCY = app.height/2
+    app.newRoom = 0
+
+    # character variables
     app.charX = app.width//2
     app.charY = app.height//2
     app.direction = "left"
@@ -107,41 +93,17 @@ def appStarted(app):
     app.movingLeft = False
     app.movingUp = False
     app.movingDown = False
-    app.curRoomCX = app.width/2
-    app.curRoomCY = app.height/2
-    app.newRoom = 0
     app.curProjStrength = 0
     app.charProj = []
     initImages(app)
+    app.charHP = 5
+
+    # mobs
     app.mobs = [dragon,ghost]
     for mob in app.mobs:
         mobImageInit(mob,app)
     #app.switchRoomOverlay = makeTranslucentRectangle(app, app.width, app.height, fill = "black", opacity = .1*app.newRoom)
 
-
-def redrawAll(app,canvas):
-    # --background
-    canvas.create_image(app.curRoomCX,app.curRoomCY,image = 
-                        ImageTk.PhotoImage(app.bgImage))
-    # --character
-    spriteImage = app.sprites[app.direction][app.charSpriteCounter]
-    canvas.create_image(app.charX, app.charY, image = ImageTk.PhotoImage(spriteImage))
-    # draw projectiles the character has shot
-    for proj in app.charProj:
-        canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
-    # --mobs
-    # remove dead mobs
-    for i in range(len(app.mobs)):
-        if app.mobs[i].type == "death":
-            app.mobs.pop(i)
-    for mob in app.mobs:
-        mobSprite = mob.sprites[mob.type][mob.spriteCounter]
-        canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
-        for proj in mob.proj:
-            canvas.create_oval(proj.cx-5,proj.cy-5,proj.cx+5,proj.cy+5, fill = "white")
-    # screen for room switch
-    if app.newRoom > 0:
-        canvas.create_rectangle(0,0,app.width,app.height, image = app.switchRoomOverlay)
 
 # CITATION: Kian Nassre
 def makeTranslucentRectangle(app, width, height, fill, opacity):
@@ -168,6 +130,10 @@ def initImages(app):
     app.charSprite = app.scaleImage(app.charSprite,.1)
     app.charSpriteWidth, app.charSpriteHeight = app.charSprite.size
     app.sprites = dict()
+    # Lives
+    app.life = app.loadImage('Heart.png')
+    app.life = app.scaleImage(app.life,2)
+    app.lifeWidth, app.lifeHeight = app.life.size
     for dir in ["down0","right1","left2","up3"]:
         index = int(dir[-1:])
         newDir = dir[:-1]
@@ -183,7 +149,61 @@ def initImages(app):
     app.charWidth, app.charHeight = app.sprites["left"][0].size
 
 
+# IMAGE CITATION: mob sprites from: https://analogstudios.itch.io/dungeonsprites
+def mobImageInit(mob,app):
+    mob.sprite = app.loadImage(f'{mob.name}_.png')
+    mob.sprite = app.scaleImage(mob.sprite,5)
+    mob.spriteWidth, mob.spriteHeight = mob.sprite.size
+    mob.sprites = dict()
+    for dir in ["idle0", "walk1", "run3", "jump4", "turn5", "hurt6", "death7"]:
+        index = int(dir[-1:])
+        newDir = dir[:-1]
+        topLeftY = index * mob.spriteHeight / 7
+        botRightY = (index + 1) * mob.spriteHeight / 7
+        tempSprites = []
+        for i in range(8):
+            topLeftX = mob.spriteWidth * i / 8
+            botRightX = mob.spriteWidth * (i+1) / 8
+            sprite = mob.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+            tempSprites.append(sprite)
+        mob.sprites[newDir] = tempSprites
+    mob.width,mob.height = mob.sprites["idle"][0].size
+
+
+
+def redrawAll(app,canvas):
+    # --background
+    canvas.create_image(app.curRoomCX,app.curRoomCY,image = 
+                        ImageTk.PhotoImage(app.bgImage))
+    # --character
+    spriteImage = app.sprites[app.direction][app.charSpriteCounter]
+    canvas.create_image(app.charX, app.charY, image = ImageTk.PhotoImage(spriteImage))
+    # draw projectiles the character has shot
+    for proj in app.charProj:
+        canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
+    # --mobs
+    # remove dead mobs
+    for i in range(len(app.mobs)):
+        if app.mobs[i].type == "death":
+            app.mobs.pop(i)
+    for mob in app.mobs:
+        mobSprite = mob.sprites[mob.type][mob.spriteCounter]
+        canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
+        for proj in mob.proj:
+            canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
+    # screen for room switch
+    if app.newRoom > 0:
+        canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
+    for i in range(app.charHP):
+        x0 = 20 + i*(app.lifeWidth + 10)
+        y0 = 20
+        x1 = 20 + (i+1)*(app.lifeWidth + 10)
+        y1 = app.lifeHeight
+        canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
+
+
 def timerFired(app):
+    app.count += 1
     if app.newRoom > 0:
         app.newRoom -= 1
     if app.isMoving:
@@ -201,16 +221,19 @@ def timerFired(app):
     for mob in app.mobs:
         mob.spriteCounter = (mob.spriteCounter + 1) % 8
         mob.move(app,7)
-        mob.atk(app,10)
+        if app.count % 5 == 0:
+            mob.atk(app,10)
         k = 0
         while k < len(mob.proj):
             proj = mob.proj[k]
-            proj.move(app)
+            proj.move()
+            # the projectiles hit the character
             if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
                 (proj.cx + 5) <= (app.charX + app.charWidth/2) and
                 (proj.cy + 5) >= (app.charY - app.charHeight/2) and
                 (proj.cy + 5) <= (app.charY + app.charHeight/2)):
                 mob.proj.pop(k)
+                app.charHP -= 1
             else:
                 k += 1
         j = 0
@@ -220,7 +243,7 @@ def timerFired(app):
                 (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
                 (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
                 (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                mob.gotHit(proj.strength)
+                mob.gotHit(proj.strength*10)
                 app.charProj.pop(j)
             else:
                 j += 1
