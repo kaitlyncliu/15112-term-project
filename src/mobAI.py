@@ -16,6 +16,7 @@ class Mob(object):
             self.type = "hurt"
         else:
             self.type = "death"
+        print(self.health)
     
     def move(self,app,amt):
         charX, charY = app.charX, app.charY
