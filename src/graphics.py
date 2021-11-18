@@ -104,7 +104,7 @@ def appStarted(app):
         mobImageInit(mob,app)
     #app.switchRoomOverlay = makeTranslucentRectangle(app, app.width, app.height, fill = "black", opacity = .1*app.newRoom)
 
-
+# this doesn't work for some reason so I still need to fix it
 # CITATION: Kian Nassre
 def makeTranslucentRectangle(app, width, height, fill, opacity):
   fill = app.root.winfo_rgb(fill) + (int(255*opacity),)
@@ -221,7 +221,8 @@ def timerFired(app):
     for mob in app.mobs:
         mob.spriteCounter = (mob.spriteCounter + 1) % 8
         mob.move(app,7)
-        if app.count % 5 == 0:
+        # slows down mob atks
+        if app.count % 10 == 0:
             mob.atk(app,10)
         k = 0
         while k < len(mob.proj):
@@ -324,7 +325,7 @@ def mouseReleased(app,event):
     difX = event.x - newProj.cx
     difY = event.y - newProj.cy
     newProj.angle = math.atan2(difY,difX)
-    newProj.vx = 5*newProj.strength*math.cos(newProj.angle)
-    newProj.vy = 5*newProj.strength*math.sin(newProj.angle)
+    newProj.vx = 8*newProj.strength*math.cos(newProj.angle)
+    newProj.vy = 8*newProj.strength*math.sin(newProj.angle)
 
 runApp(width = 1000, height = 500)

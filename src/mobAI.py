@@ -32,6 +32,7 @@ class Mob(object):
             closestProj = dFromProj.index(dFromClosest)
         # dodges character projectiles that are close by
         if app.charProj != [] and dFromClosest <= 50:
+            self.type = "run"
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
@@ -52,6 +53,20 @@ class Mob(object):
 class Ghost(Mob):
     def move(self,app,amt):
         self.type = "idle"
+        dFromProj = []
+        for proj in app.charProj:
+            d = distance(self.cx,self.cy,proj.cx,proj.cy)
+            dFromProj.append(d)
+        if app.charProj != []:
+            dFromClosest = min(dFromProj)
+            closestProj = dFromProj.index(dFromClosest)
+        # dodges character projectiles that are close by
+        if app.charProj != [] and dFromClosest <= 50:
+            difX = self.cx - app.charProj[closestProj].cx
+            difY = self.cy - app.charProj[closestProj].cy
+            angle = math.atan2(difY,difX)
+            self.cx += amt*2 * math.cos(angle)
+            self.cy += amt*2 * math.sin(angle)
     
     def atk(self,app,dmg):
         charX, charY = app.charX, app.charY
@@ -82,5 +97,5 @@ class Projectile(object):
     
 class GhostTear(Projectile):
     def move(self):
-        self.cx -= 15 * math.cos(self.angle)
-        self.cy -= 15 * math.sin(self.angle)
+        self.cx -= 30 * math.cos(self.angle)
+        self.cy -= 30 * math.sin(self.angle)
