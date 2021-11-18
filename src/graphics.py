@@ -161,6 +161,7 @@ def timerFired(app):
         moveChar(app,15)
     for mob in app.mobs:
         mob.spriteCounter = (mob.spriteCounter + 1) % 8
+        mob.move(app,8)
 
 def moveChar(app,amount):
     leftWall = app.width/12
