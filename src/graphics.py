@@ -58,7 +58,7 @@ shopRoom2 = DungeonRoom(None,None,(0,1,0,0))
 # Enemies
 
 dragon = Mob("dragon",500)
-
+ghost = Ghost("ghost",250)
 
 ###############################################
 # Graphics stuff
@@ -110,30 +110,36 @@ def appStarted(app):
     app.curRoomCX = app.width/2
     app.curRoomCY = app.height/2
     app.newRoom = 0
-    app.atkStrength = 0
-    app.attacking = True
-    app.atkTime = -1
-    app.poopX = 0
-    app.poopY = 0
-    app.vx = 0
-    app.vy = 0
+    app.curProjStrength = 0
+    app.charProj = []
     initImages(app)
-    app.mobs = [dragon]
+    app.mobs = [dragon,ghost]
     for mob in app.mobs:
         mobImageInit(mob,app)
 
 def redrawAll(app,canvas):
+    # --background
     canvas.create_image(app.curRoomCX,app.curRoomCY,image = 
                         ImageTk.PhotoImage(app.bgImage))
+    # --character
     spriteImage = app.sprites[app.direction][app.charSpriteCounter]
-    canvas.create_image(app.charX,app.charY,image = ImageTk.PhotoImage(spriteImage))
+    canvas.create_image(app.charX, app.charY, image = ImageTk.PhotoImage(spriteImage))
+    # draw projectiles the character has shot
+    for proj in app.charProj:
+        canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
+    # --mobs
+    # remove dead mobs
+    for i in range(len(app.mobs)):
+        if app.mobs[i].type == "death":
+            app.mobs.pop(i)
     for mob in app.mobs:
         mobSprite = mob.sprites[mob.type][mob.spriteCounter]
-        canvas.create_image(mob.cx,mob.cy,image = ImageTk.PhotoImage(mobSprite))
+        canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
+        for proj in mob.proj:
+            canvas.create_oval(proj.cx-5,proj.cy-5,proj.cx+5,proj.cy+5, fill = "white")
+    # screen for room switch
     if app.newRoom > 0:
         canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
-    if app.atkTime < 20 and app.atkTime >= 0:
-        canvas.create_image(app.poopX,app.poopY,image = ImageTk.PhotoImage(app.projImage))
 
 
 # IMAGE CITATION: 
@@ -142,12 +148,15 @@ def redrawAll(app,canvas):
 # (https://pahiroarts.artstation.com/projects/n3n5o) - and edited it
 # poop: https://www.artstation.com/artwork/Yea8bb
 def initImages(app):
+    # background --
     app.bgImage = app.loadImage('stoneBG.png')
     app.bgImage = app.bgImage.resize((app.width,app.height))
     app.bgWidth,app.bgHeight = app.bgImage.size
-    app.projImage = app.loadImage('poop.png')
-    app.projImage = app.scaleImage(app.projImage,.5)
-    app.projRad = app.projImage.size[0]/2
+    # character projectiles --
+    app.poopImage = app.loadImage('poop.png')
+    app.poopImage = app.scaleImage(app.poopImage,.5)
+    app.poopRad = app.poopImage.size[0]/2
+    # character
     app.charSprite = app.loadImage('charSprite.png')
     app.charSprite = app.scaleImage(app.charSprite,.1)
     app.charSpriteWidth, app.charSpriteHeight = app.charSprite.size
@@ -165,8 +174,6 @@ def initImages(app):
             tempSprites.append(sprite)
         app.sprites[newDir] = tempSprites
 
-def distance(x0,y0,x1,y1):
-    return math.sqrt((x0-x1)**2+(y0-y1)**2)
 
 def timerFired(app):
     if app.newRoom > 0:
@@ -174,19 +181,34 @@ def timerFired(app):
     if app.isMoving:
         app.charSpriteCounter = (app.charSpriteCounter + 1) % 4
         moveChar(app,15)
-    app.poopY = app.charY + (app.vy*app.atkTime - 0.5*(-3)*app.atkTime**2)
-    app.poopX = app.charX + app.vx*app.atkTime
-    app.atkTime += 1
+    i = 0
+    while i < len(app.charProj):
+        proj = app.charProj[i]
+        proj.time += 1
+        proj.move(app)
+        if proj.cx < 50 or proj.cx > app.width-50 or proj.cy < 50 or proj.cy > app.height-50:
+            app.charProj.pop(i)
+        else:
+            i += 1
     for mob in app.mobs:
         mob.spriteCounter = (mob.spriteCounter + 1) % 8
         mob.move(app,7)
-        if ((app.poopX + app.projRad) >= (mob.cx - mob.width/2) and 
-            (app.poopX + app.projRad) <= (mob.cx + mob.width/2) and
-            (app.poopY + app.projRad) >= (mob.cy - mob.height/2) and
-            (app.poopY + app.projRad) <= (mob.cy + mob.height/2)):
-            mob.gotHit(app.atkStrength*5)
-    if app.attacking:
-        app.atkStrength += 1
+        mob.atk(app,10)
+        for proj in mob.proj:
+            proj.move(app)
+        j = 0
+        while j < len(app.charProj):
+            proj = app.charProj[j]
+            if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
+                (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
+                (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
+                (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
+                mob.gotHit(proj.strength)
+                app.charProj.pop(j)
+            else:
+                j += 1
+    if app.curProjStrength < 20:
+        app.curProjStrength += 1
     
 
 def moveChar(app,amount):
@@ -254,17 +276,15 @@ def keyReleased(app,event):
         app.isMoving = False
 
 def mousePressed(app,event):
-    app.attacking = True
+    app.curProjStrength = 0
 
 def mouseReleased(app,event):
-    difX = event.x - app.charX
-    difY = event.y - app.charY
-    angle = math.atan2(difY,difX)
-    if app.atkStrength >= 20:
-        app.atkStrength = 20
-    app.vx = app.atkStrength*math.cos(angle)
-    app.vy = app.atkStrength*math.sin(angle)
-    app.atkTime = 0
-    app.attacking = False
+    app.charProj.append(Projectile(app.curProjStrength, app.charX, app.charY))
+    newProj = app.charProj[-1]
+    difX = event.x - newProj.cx
+    difY = event.y - newProj.cy
+    newProj.angle = math.atan2(difY,difX)
+    newProj.vx = 5*newProj.strength*math.cos(newProj.angle)
+    newProj.vy = 5*newProj.strength*math.sin(newProj.angle)
 
 runApp(width = 1000, height = 500)
