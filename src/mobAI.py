@@ -31,13 +31,13 @@ class Mob(object):
             dFromClosest = min(dFromProj)
             closestProj = dFromProj.index(dFromClosest)
         # dodges character projectiles that are close by
-        if app.charProj != [] and dFromClosest <= 50:
+        if app.charProj != [] and dFromClosest <= 80:
             self.type = "run"
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
-            self.cx += amt*2 * math.cos(angle)
-            self.cy += amt*2 * math.sin(angle)
+            self.cx += amt*3 * math.cos(angle)
+            self.cy += amt*3 * math.sin(angle)
         else:
             charX, charY = app.charX, app.charY
             difX = self.cx - charX
@@ -61,12 +61,12 @@ class Ghost(Mob):
             dFromClosest = min(dFromProj)
             closestProj = dFromProj.index(dFromClosest)
         # dodges character projectiles that are close by
-        if app.charProj != [] and dFromClosest <= 50:
+        if app.charProj != [] and dFromClosest <= 80:
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
-            self.cx += amt*2 * math.cos(angle)
-            self.cy += amt*2 * math.sin(angle)
+            self.cx += amt*3 * math.cos(angle)
+            self.cy += amt*3 * math.sin(angle)
     
     def atk(self,app,dmg):
         charX, charY = app.charX, app.charY

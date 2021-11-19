@@ -76,7 +76,7 @@ fakeMap = [[leftBossRoom, None, None,       None, shopRoom2],
 def appStarted(app):
     # map/general game mechanic variables
     app.count = 0
-    app.timerDelay = 50
+    app.timerDelay = 70
     app.map = fakeMap
     app.curRoom = (5,2)
     app.curRoomCX = app.width/2
@@ -170,22 +170,18 @@ def mobImageInit(mob,app):
     mob.width,mob.height = mob.sprites["idle"][0].size
 
 
-
 def redrawAll(app,canvas):
     # --background
     canvas.create_image(app.curRoomCX,app.curRoomCY,image = 
                         ImageTk.PhotoImage(app.bgImage))
     # --character
     spriteImage = app.sprites[app.direction][app.charSpriteCounter]
-    canvas.create_image(app.charX, app.charY, image = ImageTk.PhotoImage(spriteImage))
+    if app.charHP > 0:
+        canvas.create_image(app.charX, app.charY, image = ImageTk.PhotoImage(spriteImage))
     # draw projectiles the character has shot
     for proj in app.charProj:
         canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
     # --mobs
-    # remove dead mobs
-    for i in range(len(app.mobs)):
-        if app.mobs[i].type == "death":
-            app.mobs.pop(i)
     for mob in app.mobs:
         mobSprite = mob.sprites[mob.type][mob.spriteCounter]
         canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
@@ -200,7 +196,6 @@ def redrawAll(app,canvas):
         x1 = 20 + (i+1)*(app.lifeWidth + 10)
         y1 = app.lifeHeight
         canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
-
 
 def timerFired(app):
     app.count += 1
@@ -224,6 +219,11 @@ def timerFired(app):
         # slows down mob atks
         if app.count % 10 == 0:
             mob.atk(app,10)
+            if ((mob.cx) >= (app.charX - app.charWidth/2) and
+                (mob.cx) <= (app.charX + app.charWidth/2) and
+                (mob.cy) >= (app.charY - app.charHeight/2) and
+                (mob.cy) >= (app.charY + app.charHeight/2)):
+                app.charHP -= 1
         k = 0
         while k < len(mob.proj):
             proj = mob.proj[k]
@@ -244,13 +244,18 @@ def timerFired(app):
                 (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
                 (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
                 (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                mob.gotHit(proj.strength*10)
+                mob.gotHit(proj.strength*25)
                 app.charProj.pop(j)
             else:
                 j += 1
+        h = 0
+        while h < len(app.mobs):
+            if app.mobs[h].type == "death":
+                app.mobs.pop(h)
+            else:
+                h += 1
     if app.curProjStrength < 20:
         app.curProjStrength += 1
-    
 
 def moveChar(app,amount):
     leftWall = app.width/12
@@ -283,8 +288,7 @@ def moveChar(app,amount):
             app.charY = app.height/8 + 1
             app.bgImage = app.loadImage(app.map[app.curRoom[0]+1][app.curRoom[1]].background)
         app.newRoom = 10
-        app.isMoving = False
-            
+        app.isMoving = False   
             
 # allows the character to move diagonally and not just in a straight line
 def keyPressed(app,event):
@@ -311,6 +315,8 @@ def keyReleased(app,event):
         app.movingUp = False
     elif event.key == "s":
         app.movingDown = False
+    elif event.key == "r":
+        app.charHP = 5
     # None of the movement keys are being pressed
     if (app.movingRight == False and app.movingLeft == False and 
         app.movingUp == False and app.movingDown == False):
