@@ -126,6 +126,8 @@ def makeSpecialRooms(map, endRooms):
     map[bossLocation[0]][bossLocation[1]] = "bossRoom"
     treasureLocation = endRooms[-2]
     map[treasureLocation[0]][treasureLocation[1]] = "treasureRoom"
+    shopLocation = endRooms[-3]
+    map[shopLocation[0]][shopLocation[1]] = "shopRoom"
     rows = len(map)
     cols = len(map[0])
     dirs = [(0,1),(1,0),(0,-1),(-1,0)]
@@ -206,27 +208,6 @@ def makeRooms(map, queue, endRooms, targetRooms, currRooms):
             queue.append((startRoom))
         return makeRooms(map, queue, endRooms, targetRooms, currRooms)
 
-# this is incomplete but will keep placing rooms until the map is walkable and 
-# the board is at least 75% full 
-'''
-def makeFloor(map):
-    map = copy.deepcopy(mapsList[random.randint(0,len(mapsList)-1)])
-    # can successfully make it from the boss room to the spawn room
-    # may or may not be possible to make it to potion room on each floor
-    if map == defaultMap:
-        startRow = 0
-        startCol = 0
-    else:
-        startRow = 0
-        startCol = 4
-    if walkable(map,startRow,startCol,(5,2)):
-        return map
-    else:
-        for i in range(len(map)):
-            for j in range(len(map[0])):
-                randomRoom = roomList[random.randint(0,len(roomList)-1)]
-                if checkValidRoom(map,i,j,randomRoom):
-                    map[i][j] == randomRoom'''
 
 # backtracker that checks if a path from the boss room to the spawn 
 # exists on the map
