@@ -14,8 +14,6 @@ import copy
 from cmu_112_graphics import *
 #from mapGenerator import *
 from mobAI import *
-from mobAI import *
-
 
 ################################################
 # My code
@@ -102,14 +100,6 @@ def appStarted(app):
     app.mobs = [dragon,ghost]
     for mob in app.mobs:
         mobImageInit(mob,app)
-    #app.switchRoomOverlay = makeTranslucentRectangle(app, app.width, app.height, fill = "black", opacity = .1*app.newRoom)
-
-# this doesn't work for some reason so I still need to fix it
-# CITATION: Kian Nassre
-def makeTranslucentRectangle(app, width, height, fill, opacity):
-  fill = app.root.winfo_rgb(fill) + (int(255*opacity),)
-  image = Image.new('RGBA', (width, height), fill)
-  return ImageTk.PhotoImage(image)
 
 # IMAGE CITATION: 
 # character sprite: https://www.pngegg.com/en/png-nehup
