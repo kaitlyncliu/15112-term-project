@@ -1,6 +1,5 @@
 import random
 import copy
-from mobAI import Mob, Ghost
 import math
 
 # Map Generator
@@ -58,13 +57,14 @@ def makeSpecialRooms(map, endRooms):
             map[bossLocation[0]][bossLocation[1]] = "bossRoom"
             endRooms.pop(-i)
             break
-    treasureLocation = endRooms[-1]
-    print(treasureLocation)
-    map[treasureLocation[0]][treasureLocation[1]] = "treasureRoom"
-    endRooms.pop()
-    shopLocation = endRooms[-1]
-    map[shopLocation[0]][shopLocation[1]] = "shopRoom"
-    endRooms.pop()
+    if len(endRooms) > 0:
+        treasureLocation = endRooms[-1]
+        map[treasureLocation[0]][treasureLocation[1]] = "treasureRoom"
+        endRooms.pop()
+    if len(endRooms) > 0:
+        shopLocation = endRooms[-1]
+        map[shopLocation[0]][shopLocation[1]] = "shopRoom"
+        endRooms.pop()
     rows = len(map)
     cols = len(map[0])
     dirs = [(0,1),(1,0),(0,-1),(-1,0)]

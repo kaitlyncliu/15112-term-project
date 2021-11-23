@@ -11,10 +11,14 @@ def distance(x0,y0,x1,y1):
 class Mob(object):
     def __init__(self,name,health):
         self.name = name
+        self.initHealth = health
         self.health = health
         self.spriteCounter = 0
-        self.cx = random.randint(100,900)
-        self.cy = random.randint(50,450)
+        self.totalSprites = 8
+        self.initx = 300
+        self.inity = 200
+        self.cx = 300 #random.randint(100,900)
+        self.cy = 200 #random.randint(50,450)
         self.type = "walk"
         self.proj = []
 
@@ -43,11 +47,36 @@ class Mob(object):
             self.cx += amt*3 * math.cos(angle)
             self.cy += amt*3 * math.sin(angle)
         else:
+            #charX, charY = convertToGrid(app.charY,app.charX)
+            #selfX, selfY = convertToGrid(self.cy,self.cx)
             charX, charY = app.charX, app.charY
-            path = aStar(app,app.roomType.map,)
+            difX = self.cx - charX
+            difY = self.cy - charY
+            angle = math.atan2(difY,difX)
+            newX = self.cx - amt * math.cos(angle)
+            newY = self.cy - amt * math.sin(angle)
+            gridRow, gridCol = convertToGrid(newX,newY)
+            if app.roomType.map[gridRow][gridCol] != 1:
+                self.cx = newX
+                self.cy = newY
+            '''path = aStar(app.roomType.map,(selfX,selfY),(charX,charY))
+            if path != None:
+                print(path[0][1],path[0][0])
+                difX = abs(self.cx - path[0][0]*19)
+                difY = abs(self.cy - path[0][1]*19)
+                angle = math.atan2(difY,difX)
+                self.cx += amt * math.cos(angle)
+                self.cy += amt * math.sin(angle)'''
 
     def atk(self,app,dmg):
         pass
+
+    
+    def respawn(self,app):
+        self.cx = self.initx
+        self.cy = self.inity
+        self.health = self.initHealth
+
 
 
 class Ghost(Mob):
@@ -75,6 +104,7 @@ class Ghost(Mob):
         angle = math.atan2(difY,difX)
         self.proj.append(GhostTear(10,self.cx,self.cy))
         self.proj[-1].angle = angle
+
        
 # basic projectiles for both the player and mobs
 class Projectile(object):
@@ -105,7 +135,7 @@ class GhostTear(Projectile):
 # Pathfinding Algorithm - (A*)
 
 class Node(object):
-    def __init__(self,app,parent,x,y,end):
+    def __init__(self,parent,x,y,end):
         
         self.x = x
         self.y = y
@@ -127,16 +157,20 @@ def inBounds(map,row,col):
     else:
         return False
 
+def convertToGrid(x,y):
+    row = (y-80)//95
+    col = (x-70)//95
+    return (int(row),int(col))
 
 # CITATION: Used this tutorial: https://brilliant.org/wiki/a-star-search/
-def aStar(app,roomMap,start,end):
+def aStar(roomMap,start,end):
     startx, starty = start
-    startNode = Node(app,None,startx,starty,end)
-    dummyNode = Node(app,None,9999,9999,end)
+    startNode = Node(None,startx,starty,end)
+    dummyNode = Node(None,9999,9999,end)
     open = [startNode]
     closed = []
     curNode = startNode
-    dirs = [(0,+1),(0,-1),(+1,0),(-1,0),(+1,+1),(-1,+1),(-1,-1),(+1,-1)]
+    dirs = [(0,+1),(0,-1),(+1,0),(-1,0)]
     while (curNode.x,curNode.y) != end:
         bestFNode = dummyNode
         for node in open:
@@ -147,17 +181,19 @@ def aStar(app,roomMap,start,end):
         else:
             curNode = bestFNode
             closed.append(bestFNode)
+            if open == []:
+                return None
             open.remove(bestFNode)
             childNodes = []
             for i in range(len(dirs)):
                 newNodeX = curNode.x+dirs[i][0]
                 newNodeY = curNode.y+dirs[i][1]
                 if inBounds(roomMap,newNodeX,newNodeY) and roomMap[newNodeX][newNodeY] != 1:
-                    newNode = Node(app,curNode,newNodeX,newNodeY,end)
+                    newNode = Node(curNode,newNodeX,newNodeY,end)
                     if i <= 3: # straight movement
                         newNode.g = curNode.g + 1
-                    else: # diagonal movement
-                        newNode.g = curNode.g + 1.4
+                    '''else: # diagonal movement
+                        newNode.g = curNode.g + 1.4'''
                     childNodes.append(newNode)
             for child in childNodes:
                 if child in closed:
@@ -172,7 +208,6 @@ def aStar(app,roomMap,start,end):
                             openNode.parent = curNode
                 else:
                     open.append(child)
-    return None
 
 # CITATION: https://www.educative.io/edpresso/what-is-the-a-star-algorithm
 def getPath(endNode):
@@ -184,4 +219,11 @@ def getPath(endNode):
         curNode = curNode.parent
     return path[::-1]
 
+"""
+room2 = [[0,0,0,0,0,1,0,1,0],
+        [0,1,0,1,0,1,0,0,0],
+        [1,0,0,1,0,0,0,0,0],
+        [0,0,1,0,0,0,0,0,0],]
 
+print(aStar(room2,(2,1),(2,6)))
+"""

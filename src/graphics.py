@@ -14,11 +14,13 @@ import copy
 from cmu_112_graphics import *
 from mapGenerator import *
 from mobAI import *
+from bossAI import *
 
 ##############################################
 # Enemies
 dragon = Mob("dragon",500)
 ghost = Ghost("ghost",250)
+boss = Boss("boss",1000)
 
 ###############################################
 
@@ -40,7 +42,7 @@ def initRooms(app):
     room1.obsLocations[(3,2)] = app.rockImage
     room1.obsLocations[(4,2)] = app.rockImage
     room1.obsLocations[(5,2)] = app.rockImage
-    room1.mobs = [dragon,ghost]
+    room1.mobs = [boss,ghost]
     room1.map = [[0,0,0,0,0,0,0,0,0],
                  [0,0,0,1,1,1,0,0,0],
                  [0,0,0,1,1,1,0,0,0],
@@ -48,11 +50,11 @@ def initRooms(app):
     app.roomsList.append(room1)
 
     room2 = DungeonRoom("room2")
-    room2.mobs = [ghost,ghost,ghost]
-    room2Obs = [((0,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
+    room2.mobs = [dragon,boss]
+    room2Obs = [((1,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
     room2.obsLocations = dict(room2Obs)
     room2.map = [[0,0,0,0,0,0,0,1,0],
-                 [1,0,0,1,0,0,0,0,0],
+                 [0,1,0,1,0,0,0,0,0],
                  [1,0,0,1,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0],]
     app.roomsList.append(room2)
@@ -63,6 +65,7 @@ def initRooms(app):
 
     # bossRoom
     app.bossRoom = DungeonRoom("bossRoom")
+    app.bossRoom.mobs = [boss]
     
     # shopRoom 
     app.shopRoom = DungeonRoom("shopRoom")
@@ -98,7 +101,8 @@ def fillRooms(app):
 def appStarted(app):
     # map/general game mechanic variables
     app.count = 0
-    app.timerDelay = 70
+    app.paused = False
+    app.timerDelay = 100
     app.level = 1
     app.targetRooms = getTargetRooms(app.level)
     app.map = startMakeRooms(app.targetRooms)
@@ -129,9 +133,13 @@ def appStarted(app):
     app.charHP = 5
 
     # mobs
-    app.mobs = []
-    for mob in app.mobs:
-        mobImageInit(mob,app)
+    app.mobs = app.roomType.mobs
+    app.mobsList = [ghost,dragon,boss]
+    for mob in app.mobsList:
+        if isinstance(mob,Boss):
+            bossImageInit(mob,app)
+        else:
+            mobImageInit(mob,app)
 
 
 
@@ -195,6 +203,38 @@ def mobImageInit(mob,app):
         mob.sprites[newDir] = tempSprites
     mob.width,mob.height = mob.sprites["idle"][0].size
 
+def bossImageInit(boss,app):
+    boss.sprites = dict()
+    states = ["attack","skill"]
+    for i in range(len(states)):
+        boss.sprite = app.loadImage(f'{states[i]}.png')
+        boss.sprite = app.scaleImage(boss.sprite,5)
+        boss.spriteWidth, boss.spriteHeight = boss.sprite.size
+        tempSprites = []
+        for j in range(2):
+            for k in range(6):
+                topLeftX = boss.spriteWidth*k/6
+                botRightX = boss.spriteWidth*(k+1)/6
+                topLeftY = boss.spriteHeight*j/2
+                botRightY = boss.spriteHeight*(j+1)/2
+                sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+                tempSprites.append(sprite)
+        boss.sprites[states[i]] = tempSprites
+    boss.width,boss.height = boss.sprites["attack"][0].size
+    boss.sprite = app.loadImage('idle.png')
+    boss.sprite = app.scaleImage(boss.sprite,5)
+    boss.spriteWidth, boss.spriteHeight = boss.sprite.size
+    tempSprite = []
+    for row in range(2):
+        for col in range(4):
+            topLeftX = boss.spriteWidth*col/4
+            botRightX = boss.spriteWidth*(col+1)/4
+            topLeftY = boss.spriteHeight*row/2
+            botRightY = boss.spriteHeight*(row+1)/2
+            sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+            tempSprite.append(sprite)
+    boss.sprites["idle"] = tempSprite
+
 # pixels where floor starts: x: 14*5, y: 16*5
 
 def redrawAll(app,canvas):
@@ -216,15 +256,15 @@ def redrawAll(app,canvas):
     for dir in dirs:
         newRow = app.curRoom[0] + dir[0]
         newCol = app.curRoom[1] + dir[1]
-        if app.map[newRow][newCol] != 0:
-            if dir == (0,-1):
-                canvas.create_rectangle(app.width/2-25,0,app.width/2+25,80, fill = "black")
-            elif dir == (0,1):
-                canvas.create_rectangle(app.width/2-25,app.height-40,app.width/2+25,app.height, fill = "black")
-            elif dir == (-1,0):
-                canvas.create_rectangle(0,app.height/2-25,70,app.height/2+25, fill = "black")
+        if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+            if dir == (-1,0):
+                canvas.create_rectangle(app.width/2-30,0,app.width/2+30,80, fill = "black")
             elif dir == (1,0):
-                canvas.create_rectangle(app.width-75,app.height/2-25,app.width,app.height/2+25, fill = "black")
+                canvas.create_rectangle(app.width/2-30,app.height-40,app.width/2+30,app.height, fill = "black")
+            elif dir == (0,-1):
+                canvas.create_rectangle(0,app.height/2-30,70,app.height/2+30, fill = "black")
+            elif dir == (0,1):
+                canvas.create_rectangle(app.width-75,app.height/2-30,app.width,app.height/2+30, fill = "black")
     
     # --character
     spriteImage = app.sprites[app.direction][app.charSpriteCounter]
@@ -233,6 +273,7 @@ def redrawAll(app,canvas):
     # draw projectiles the character has shot
     for proj in app.charProj:
         canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
+    
     # --mobs
     for mob in app.mobs:
         mobSprite = mob.sprites[mob.type][mob.spriteCounter]
@@ -251,65 +292,68 @@ def redrawAll(app,canvas):
     
 
 def timerFired(app):
-    app.count += 1
-    if app.newRoom > 0:
-        app.newRoom -= 1
-    if app.isMoving:
-        app.charSpriteCounter = (app.charSpriteCounter + 1) % 4
-        moveChar(app,15)
-    i = 0
-    while i < len(app.charProj):
-        proj = app.charProj[i]
-        proj.time += 1
-        proj.move(app)
-        if proj.cx < 50 or proj.cx > app.width-50 or proj.cy < 50 or proj.cy > app.height-50:
-            app.charProj.pop(i)
-        else:
-            i += 1
-    for mob in app.mobs:
-        mob.spriteCounter = (mob.spriteCounter + 1) % 8
-        mob.move(app,7)
-        # slows down mob atks
-        if app.count % 10 == 0:
-            mob.atk(app,10)
-            # the mob is attacking the player - melee
-            if ((mob.cx) >= (app.charX - app.charWidth/2) and
-                (mob.cx) <= (app.charX + app.charWidth/2) and
-                (mob.cy) >= (app.charY - app.charHeight/2) and
-                (mob.cy) >= (app.charY + app.charHeight/2)):
-                app.charHP -= 1
-        k = 0
-        while k < len(mob.proj):
-            proj = mob.proj[k]
-            proj.move()
-            # the projectiles hit the character
-            if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
-                (proj.cx + 5) <= (app.charX + app.charWidth/2) and
-                (proj.cy + 5) >= (app.charY - app.charHeight/2) and
-                (proj.cy + 5) <= (app.charY + app.charHeight/2)):
-                mob.proj.pop(k)
-                app.charHP -= 1
+    if app.paused == False:
+        app.count += 1
+        if app.newRoom > 0:
+            app.newRoom -= 1
+        if app.isMoving:
+            app.charSpriteCounter = (app.charSpriteCounter + 1) % 4
+            moveChar(app,15)
+        i = 0
+        while i < len(app.charProj):
+            proj = app.charProj[i]
+            proj.time += 1
+            proj.move(app)
+            if proj.cx < 50 or proj.cx > app.width-50 or proj.cy < 50 or proj.cy > app.height-50:
+                app.charProj.pop(i)
             else:
-                k += 1
-        j = 0
-        while j < len(app.charProj):
-            proj = app.charProj[j]
-            if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
-                (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
-                (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
-                (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                mob.gotHit(proj.strength*25)
-                app.charProj.pop(j)
-            else:
-                j += 1
-        h = 0
-        while h < len(app.mobs):
-            if app.mobs[h].type == "death":
-                app.mobs.pop(h)
-            else:
-                h += 1
-    if app.curProjStrength < 20:
-        app.curProjStrength += 1
+                i += 1
+        for mob in app.mobs:
+            print(mob.spriteCounter)
+            print(mob.sprites)
+            mob.spriteCounter = (mob.spriteCounter + 1) % mob.totalSprites
+            mob.move(app,5)
+            # slows down mob atks
+            if app.count % 10 == 0:
+                mob.atk(app,10)
+                # the mob is attacking the player - melee
+                if ((mob.cx) >= (app.charX - app.charWidth/2) and
+                    (mob.cx) <= (app.charX + app.charWidth/2) and
+                    (mob.cy) >= (app.charY - app.charHeight/2) and
+                    (mob.cy) >= (app.charY + app.charHeight/2)):
+                    app.charHP -= 1
+            k = 0
+            while k < len(mob.proj):
+                proj = mob.proj[k]
+                proj.move()
+                # the projectiles hit the character
+                if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
+                    (proj.cx + 5) <= (app.charX + app.charWidth/2) and
+                    (proj.cy + 5) >= (app.charY - app.charHeight/2) and
+                    (proj.cy + 5) <= (app.charY + app.charHeight/2)):
+                    mob.proj.pop(k)
+                    app.charHP -= 1
+                else:
+                    k += 1
+            j = 0
+            while j < len(app.charProj):
+                proj = app.charProj[j]
+                if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
+                    (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
+                    (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
+                    (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
+                    mob.gotHit(proj.strength*25)
+                    app.charProj.pop(j)
+                else:
+                    j += 1
+            h = 0
+            while h < len(app.mobs):
+                if app.mobs[h].type == "death":
+                    app.mobs.pop(h)
+                else:
+                    h += 1
+        if app.curProjStrength < 20:
+            app.curProjStrength += 1
 
 def convertToGrid(x,y):
     row = (y-80)//95
@@ -332,47 +376,47 @@ def moveChar(app,amount):
     if (newX <= rightWall and newX >= leftWall and 
         newY >= topWall and newY <= botWall):
         gridRow, gridCol = convertToGrid(newX,newY)
-        print(gridRow,gridCol)
         if app.roomType.map[gridRow][gridCol] != 1:
             app.charX = newX
             app.charY = newY
     else:
         if newX > rightWall:
-            newCol =  app.curRoom[1] + 1
-            newRow = app.curRoom[0]
-            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                app.charX = 1 * app.width/12 + 1
-                app.curRoom = (newRow,newCol)
-                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
-                app.newRoom = 10
-                app.isMoving = False   
+            if app.charY > app.height/2-30 and app.charY < app.height/2+30:
+                newCol =  app.curRoom[1] + 1
+                newRow = app.curRoom[0]
+                if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                    app.charX = 1 * app.width/12 + 1
+                    app.curRoom = (newRow,newCol)
         elif newX < leftWall:
-            newCol =  app.curRoom[1] - 1
-            newRow = app.curRoom[0]
-            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                app.charX = 11 * app.width/12 - 1
-                app.curRoom = (newRow,newCol)
-                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
-                app.newRoom = 10
-                app.isMoving = False   
+            if app.charY > app.height/2-30 and app.charY < app.height/2+30:
+                newCol =  app.curRoom[1] - 1
+                newRow = app.curRoom[0]
+                if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                    app.charX = 11 * app.width/12 - 1
+                    app.curRoom = (newRow,newCol)
         elif newY < topWall:
-            newCol =  app.curRoom[1]
-            newRow = app.curRoom[0] - 1
-            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                app.charY = 7 * app.height/8 - 1
-                app.curRoom = (newRow,newCol)
-                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
-                app.newRoom = 10
-                app.isMoving = False   
+            if app.charX > app.width/2-30 and app.charX < app.width/2+30:
+                newCol =  app.curRoom[1]
+                newRow = app.curRoom[0] - 1
+                if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                    app.charY = 7 * app.height/8 - 1
+                    app.curRoom = (newRow,newCol)
         elif newY > botWall:
-            newCol =  app.curRoom[1]
-            newRow = app.curRoom[0] + 1
-            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                app.charY = app.height/8 + 1
-                app.curRoom = (newRow,newCol)
-                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
-                app.newRoom = 10
-                app.isMoving = False   
+            if app.charX > app.width/2-30 and app.charX < app.width/2+30:
+                newCol =  app.curRoom[1]
+                newRow = app.curRoom[0] + 1
+                if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                    app.charY = app.height/8 + 1
+                    app.curRoom = (newRow,newCol) 
+        else:
+            return
+        app.mobs = app.roomType.mobs
+        app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
+        for mob in app.mobs:
+            mob.respawn(app)
+        app.newRoom = 10
+        app.isMoving = False
+        print(app.curRoom)
 
 
 # allows the character to move diagonally and not just in a straight line
@@ -402,6 +446,8 @@ def keyReleased(app,event):
         app.movingDown = False
     elif event.key == "r":
         app.charHP = 5
+    elif event.key == "p":
+        app.paused = not app.paused
     # None of the movement keys are being pressed
     if (app.movingRight == False and app.movingLeft == False and 
         app.movingUp == False and app.movingDown == False):
