@@ -1,6 +1,7 @@
 import random
 import copy
 from mobAI import Mob, Ghost
+import math
 
 # Map Generator
 
@@ -19,6 +20,10 @@ If we already have enough rooms, give up
 Random 50% chance, give up
 Otherwise, mark the neighbour cell as having a room in it, and add it to the queue.
 '''
+
+
+def distance(x0,y0,x1,y1):
+    return math.sqrt((x0-x1)**2+(y0-y1)**2)
 
 def getTargetRooms(level):
     rooms = int(level*1.4 + 8 + random.randint(0,4))
@@ -41,15 +46,29 @@ def startMakeRooms(targetRooms):
     return finalMap
 
 def makeSpecialRooms(map, endRooms):
-    bossLocation = endRooms[-1]
-    map[bossLocation[0]][bossLocation[1]] = "bossRoom"
-    treasureLocation = endRooms[-2]
+    if (3,3) in endRooms:
+        endRooms.remove((3,3))
+    for i in range(len(endRooms)):
+        tempRoom = endRooms[-i]
+        d = distance(tempRoom[0],tempRoom[1],3,3)
+        print(d,tempRoom)
+        if d > 1.5:
+            print(endRooms)
+            bossLocation = endRooms[-i]
+            map[bossLocation[0]][bossLocation[1]] = "bossRoom"
+            endRooms.pop(-i)
+            break
+    treasureLocation = endRooms[-1]
+    print(treasureLocation)
     map[treasureLocation[0]][treasureLocation[1]] = "treasureRoom"
-    shopLocation = endRooms[-3]
+    endRooms.pop()
+    shopLocation = endRooms[-1]
     map[shopLocation[0]][shopLocation[1]] = "shopRoom"
+    endRooms.pop()
     rows = len(map)
     cols = len(map[0])
     dirs = [(0,1),(1,0),(0,-1),(-1,0)]
+    random.shuffle(dirs)
     secretRoomPlaced = False
     minRoomsNear = 3
     while secretRoomPlaced == False:
@@ -93,6 +112,7 @@ def inBounds(map,row,col):
 def makeRooms(map, queue, endRooms, targetRooms, currRooms):
     startRoom = (len(map)//2, len(map[0])//2)
     dirs = [(0,1),(1,0),(0,-1),(-1,0)]
+    random.shuffle(dirs)
     if targetRooms <= currRooms:
         return map, endRooms
     else:
@@ -102,7 +122,7 @@ def makeRooms(map, queue, endRooms, targetRooms, currRooms):
                 newRow = room[0] + dir[0]
                 newCol = room[1] + dir[1]
                 # if the neighbour cell is already occupied, give up
-                if not inBounds(map,newRow,newCol) or map[newRow][newCol] != 0:
+                if (not inBounds(map,newRow,newCol)) or map[newRow][newCol] != 0:
                     continue
                 filledNeighbors = 0
                 for dir2 in dirs:
@@ -123,10 +143,10 @@ def makeRooms(map, queue, endRooms, targetRooms, currRooms):
                     addedRoom = True
                     currRooms += 1
             # did not add any rooms, so the current room is an edge room
-            if addedRoom == False:
+            if addedRoom == False and inBounds(map,newRow,newCol):
                 endRooms.append((newRow,newCol))
         # randomly seed the start room back into the queue to keep making rooms
-        if targetRooms >= 16 and random.randint(0,2) == 1:
+        if targetRooms >= 16 and random.randint(0,4) == 1:
             queue.append((startRoom))
         return makeRooms(map, queue, endRooms, targetRooms, currRooms)
 
@@ -154,6 +174,10 @@ class DungeonRoom(object):
         self.mobs = []
         self.background = None
         self.obsLocations = {}
+        self.map = [[1,0,0,0,0,0,0,0,1],
+                    [0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0],
+                    [1,0,0,0,0,0,0,0,1],]
 
     def __repr__(self):
         return self.name

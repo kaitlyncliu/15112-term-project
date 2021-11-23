@@ -47,6 +47,16 @@ def initRooms(app):
                  [0,0,0,0,0,0,0,0,0],]
     app.roomsList.append(room1)
 
+    room2 = DungeonRoom("room2")
+    room2.mobs = [ghost,ghost,ghost]
+    room2Obs = [((0,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
+    room2.obsLocations = dict(room2Obs)
+    room1.map = [[0,0,0,0,0,0,0,1,0],
+                 [1,0,0,1,0,0,0,0,0],
+                 [1,0,0,1,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0],]
+    app.roomsList.append(room2)
+
     # treasureRoom
     app.treasureRoom = DungeonRoom("treasureRoom")
     app.treasureRoom.obsLocations[(4,1)] = app.closedChest
@@ -74,6 +84,12 @@ def fillRooms(app):
                 app.map[row][col] = app.roomsList[randomRoom]
             elif app.map[row][col] == "bossRoom":
                 app.map[row][col] = app.bossRoom
+            elif app.map[row][col] == "shopRoom":
+                app.map[row][col] = app.shopRoom
+            elif app.map[row][col] == "treasureRoom":
+                app.map[row][col] = app.treasureRoom
+            elif app.map[row][col] == "secretRoom":
+                app.map[row][col] = app.secretRoom
 
 ###############################################
 # Graphics stuff
@@ -94,6 +110,7 @@ def appStarted(app):
     initObstacles(app)
     initRooms(app)
     fillRooms(app)
+    print(app.map)
     app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
 
     # character variables
@@ -294,6 +311,11 @@ def timerFired(app):
     if app.curProjStrength < 20:
         app.curProjStrength += 1
 
+def convertToGrid(x,y):
+    row = (y-80)//95
+    col = (x-70)//95
+    return (int(row),int(col))
+
 def moveChar(app,amount):
     leftWall = app.width/12
     rightWall = 11 * app.width/12
@@ -309,8 +331,11 @@ def moveChar(app,amount):
     # only move if in bounds
     if (newX <= rightWall and newX >= leftWall and 
         newY >= topWall and newY <= botWall):
-        app.charX = newX
-        app.charY = newY
+        gridRow, gridCol = convertToGrid(newX,newY)
+        print(gridRow,gridCol)
+        if app.roomType.map[gridRow][gridCol] != 1:
+            app.charX = newX
+            app.charY = newY
     else:
         if newX > rightWall:
             newCol =  app.curRoom[1] + 1
