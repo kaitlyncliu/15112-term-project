@@ -1,6 +1,6 @@
 import random
 import math
-
+from mapGenerator import *
 
 ## mob ideas: chest mimic, the mobs in sprite pack downloaded
 # animals that eat frogs: ducks and lots of birds, snakes, final boss: frog mimic that can eat you up
@@ -44,11 +44,7 @@ class Mob(object):
             self.cy += amt*3 * math.sin(angle)
         else:
             charX, charY = app.charX, app.charY
-            difX = self.cx - charX
-            difY = self.cy - charY
-            angle = math.atan2(difY,difX)
-            self.cx -= amt * math.cos(angle)
-            self.cy -= amt * math.sin(angle)
+            path = aStar(app,app.roomType.map,)
 
     def atk(self,app,dmg):
         pass
@@ -104,5 +100,88 @@ class GhostTear(Projectile):
         self.cx -= 30 * math.cos(self.angle)
         self.cy -= 30 * math.sin(self.angle)
 
+#####################################################
 
 # Pathfinding Algorithm - (A*)
+
+class Node(object):
+    def __init__(self,app,parent,x,y,end):
+        
+        self.x = x
+        self.y = y
+        self.parent = parent
+        
+        self.g = 0
+        self.h = abs(end[0]-x) + abs(end[1]-y)
+        self.f = self.g + self.h
+    
+    def __eq__(self,other):
+        if self.x == other.x and self.y == other.y:
+            return True
+        else:
+            return False
+
+def inBounds(map,row,col):
+    if row < len(map) and row >= 0 and col < len(map[0]) and col >= 0:
+        return True
+    else:
+        return False
+
+
+# CITATION: Used this tutorial: https://brilliant.org/wiki/a-star-search/
+def aStar(app,roomMap,start,end):
+    startx, starty = start
+    startNode = Node(app,None,startx,starty,end)
+    dummyNode = Node(app,None,9999,9999,end)
+    open = [startNode]
+    closed = []
+    curNode = startNode
+    dirs = [(0,+1),(0,-1),(+1,0),(-1,0),(+1,+1),(-1,+1),(-1,-1),(+1,-1)]
+    while (curNode.x,curNode.y) != end:
+        bestFNode = dummyNode
+        for node in open:
+            if node.f < bestFNode.f:
+                bestFNode = node
+        if (bestFNode.x,bestFNode.y) == end:
+            return getPath(bestFNode)
+        else:
+            curNode = bestFNode
+            closed.append(bestFNode)
+            open.remove(bestFNode)
+            childNodes = []
+            for i in range(len(dirs)):
+                newNodeX = curNode.x+dirs[i][0]
+                newNodeY = curNode.y+dirs[i][1]
+                if inBounds(roomMap,newNodeX,newNodeY) and roomMap[newNodeX][newNodeY] != 1:
+                    newNode = Node(app,curNode,newNodeX,newNodeY,end)
+                    if i <= 3: # straight movement
+                        newNode.g = curNode.g + 1
+                    else: # diagonal movement
+                        newNode.g = curNode.g + 1.4
+                    childNodes.append(newNode)
+            for child in childNodes:
+                if child in closed:
+                    for closedNode in closed:
+                        if child == closedNode and child.g < closedNode.g:
+                            closedNode.g = child.g
+                            closedNode.parent = curNode
+                elif child in open:
+                    for openNode in open:
+                        if child == openNode and child.g < openNode.g:
+                            openNode.g = child.g
+                            openNode.parent = curNode
+                else:
+                    open.append(child)
+    return None
+
+# CITATION: https://www.educative.io/edpresso/what-is-the-a-star-algorithm
+def getPath(endNode):
+    path = []
+    curNode = endNode
+    while curNode is not None:
+        path.append((curNode.x,curNode.y))
+        print(path)
+        curNode = curNode.parent
+    return path[::-1]
+
+

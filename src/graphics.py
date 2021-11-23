@@ -51,7 +51,7 @@ def initRooms(app):
     room2.mobs = [ghost,ghost,ghost]
     room2Obs = [((0,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
     room2.obsLocations = dict(room2Obs)
-    room1.map = [[0,0,0,0,0,0,0,1,0],
+    room2.map = [[0,0,0,0,0,0,0,1,0],
                  [1,0,0,1,0,0,0,0,0],
                  [1,0,0,1,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0],]
