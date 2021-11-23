@@ -32,6 +32,7 @@ def initRooms(app):
     app.spawnRoom.obsLocations[(8,0)] = app.rockImage
     app.spawnRoom.obsLocations[(0,3)] = app.rockImage
     app.spawnRoom.obsLocations[(8,3)] = app.rockImage
+    app.spawnRoom.mobs = []
     
     # regular mob room
     room1 = DungeonRoom("room1")
@@ -42,7 +43,7 @@ def initRooms(app):
     room1.obsLocations[(3,2)] = app.rockImage
     room1.obsLocations[(4,2)] = app.rockImage
     room1.obsLocations[(5,2)] = app.rockImage
-    room1.mobs = [boss,ghost]
+    room1.mobs = [ghost]
     room1.map = [[0,0,0,0,0,0,0,0,0],
                  [0,0,0,1,1,1,0,0,0],
                  [0,0,0,1,1,1,0,0,0],
@@ -50,7 +51,7 @@ def initRooms(app):
     app.roomsList.append(room1)
 
     room2 = DungeonRoom("room2")
-    room2.mobs = [dragon,boss]
+    room2.mobs = [boss]
     room2Obs = [((1,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
     room2.obsLocations = dict(room2Obs)
     room2.map = [[0,0,0,0,0,0,0,1,0],
@@ -106,6 +107,8 @@ def appStarted(app):
     app.level = 1
     app.targetRooms = getTargetRooms(app.level)
     app.map = startMakeRooms(app.targetRooms)
+    app.win = False
+    app.lose = False
     # fill normal rooms with different room templates
     app.curRoom = (3,3)
     app.curRoomCX = app.width/2
@@ -146,12 +149,18 @@ def appStarted(app):
 # CITATION: sprite code based on class notes and Image/PIL TA Mini-Lecture
 # https://www.cs.cmu.edu/~112/notes/notes-animations-part4.html
 # IMAGE CITATION: 
+# lose image: https://d2skuhm0vrry40.cloudfront.net/2020/articles/2020-05-29-11-37/five-of-the-best-game-over-screens-1590748640300.jpg/EG11/resize/1200x-1/five-of-the-best-game-over-screens-1590748640300.jpg
+# win image: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fvector%2Fpixel-art-8-bit-you-win-text-with-one-big-winner-golden-cup-on-black-background-gm1268272324-372239700&psig=AOvVaw2oeNDWuEqEaGBcL3PGYXNa&ust=1637796805682000&source=images&cd=vfe&ved=0CAsQjRxqFwoTCOCjodjSr_QCFQAAAAAdAAAAABAD
 # character sprite: https://www.pngegg.com/en/png-nehup
 # stone background: I made this, but I used a stone brick texture -
 # (https://pahiroarts.artstation.com/projects/n3n5o) - and edited it
 # poop: https://www.artstation.com/artwork/Yea8bb
 def initImages(app):
     # background --
+    app.winImage = app.loadImage("youWin.jpg")
+    app.winImage = app.scaleImage(app.winImage,2)
+    app.loseImage = app.loadImage("youLose.jpg")
+    app.loseImage = app.scaleImage(app.loseImage,0.5)
     app.bgImage = app.loadImage('stoneBG.png')
     app.bgImage = app.bgImage.resize((app.width,app.height))
     app.bgWidth,app.bgHeight = app.bgImage.size
@@ -208,7 +217,7 @@ def bossImageInit(boss,app):
     states = ["attack","skill"]
     for i in range(len(states)):
         boss.sprite = app.loadImage(f'{states[i]}.png')
-        boss.sprite = app.scaleImage(boss.sprite,5)
+        boss.sprite = app.scaleImage(boss.sprite,4)
         boss.spriteWidth, boss.spriteHeight = boss.sprite.size
         tempSprites = []
         for j in range(2):
@@ -222,7 +231,7 @@ def bossImageInit(boss,app):
         boss.sprites[states[i]] = tempSprites
     boss.width,boss.height = boss.sprites["attack"][0].size
     boss.sprite = app.loadImage('idle.png')
-    boss.sprite = app.scaleImage(boss.sprite,5)
+    boss.sprite = app.scaleImage(boss.sprite,4)
     boss.spriteWidth, boss.spriteHeight = boss.sprite.size
     tempSprite = []
     for row in range(2):
@@ -286,9 +295,16 @@ def redrawAll(app,canvas):
         x1 = 20 + (i+1)*(app.lifeWidth + 10)
         y1 = app.lifeHeight
         canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
+    
     # screen for room switch
     if app.newRoom > 0:
         canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
+    
+    if app.lose == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))
+
+    if app.win == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
     
 
 def timerFired(app):
@@ -309,8 +325,6 @@ def timerFired(app):
             else:
                 i += 1
         for mob in app.mobs:
-            print(mob.spriteCounter)
-            print(mob.sprites)
             mob.spriteCounter = (mob.spriteCounter + 1) % mob.totalSprites
             mob.move(app,5)
             # slows down mob atks
@@ -322,6 +336,9 @@ def timerFired(app):
                     (mob.cy) >= (app.charY - app.charHeight/2) and
                     (mob.cy) >= (app.charY + app.charHeight/2)):
                     app.charHP -= 1
+                    if app.charHP <= 0:
+                        app.lose = True
+                        app.paused = True
             k = 0
             while k < len(mob.proj):
                 proj = mob.proj[k]
@@ -333,6 +350,9 @@ def timerFired(app):
                     (proj.cy + 5) <= (app.charY + app.charHeight/2)):
                     mob.proj.pop(k)
                     app.charHP -= 1
+                    if app.charHP <= 0:
+                        app.lose = True
+                        app.paused = True
                 else:
                     k += 1
             j = 0
@@ -342,7 +362,7 @@ def timerFired(app):
                     (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
                     (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
                     (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                    mob.gotHit(proj.strength*25)
+                    mob.gotHit(proj.strength*25,app)
                     app.charProj.pop(j)
                 else:
                     j += 1
@@ -354,6 +374,9 @@ def timerFired(app):
                     h += 1
         if app.curProjStrength < 20:
             app.curProjStrength += 1
+        if boss in app.mobs:
+            bossStateMac.setState(boss,app)
+            print(boss.state)
 
 def convertToGrid(x,y):
     row = (y-80)//95

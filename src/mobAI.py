@@ -40,7 +40,7 @@ class Mob(object):
             closestProj = dFromProj.index(dFromClosest)
         # dodges character projectiles that are close by
         if app.charProj != [] and dFromClosest <= 80:
-            self.type = "run"
+            self.type = "idle"
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
