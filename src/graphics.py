@@ -12,74 +12,89 @@ import math
 import random
 import copy
 from cmu_112_graphics import *
-#from mapGenerator import *
+from mapGenerator import *
 from mobAI import *
-
-################################################
-# My code
-
-class DungeonRoom(object):
-    # can potentially add rounds of mobs
-    def __init__(self,mobs,loot,walls):
-        self.initialMobs = mobs
-        self.liveMobs = mobs
-        self.background = None
-        self.loot = loot
-        self.layout = None
-        self.walls = walls
-    
-    def mobSlain(self,mob):
-        self.liveMobs.remove(mob)
-    
-
-class BossRoom(DungeonRoom):
-    def bossSlain(self):
-        pass
-
-
-spawnRoom = DungeonRoom(None,None,(1,1,0,1))
-spawnRoom.background = 'https://tinyurl.com/xkfjz8zr'
-
-potionRoom = DungeonRoom(None,None,(1,1,1,1))
-
-leftBossRoom = BossRoom("Boss","bossLoot",(0,1,0,0))
-
-rightBossRoom = BossRoom("Boss","bossLoot",(0,0,0,1))
-testRoom = DungeonRoom(None,None,(1,1,0,1))
-testRoom.background = "stoneBG.png"
-
-
-shopRoom1 = DungeonRoom(None,None,(0,1,0,0))
-shopRoom2 = DungeonRoom(None,None,(0,1,0,0))
 
 ##############################################
 # Enemies
-
 dragon = Mob("dragon",500)
 ghost = Ghost("ghost",250)
 
 ###############################################
+
+def initRooms(app):
+    app.roomsList = []
+    # spawnRoom
+    app.spawnRoom = DungeonRoom("spawnRoom")
+    app.spawnRoom.obsLocations[(0,0)] = app.rockImage
+    app.spawnRoom.obsLocations[(8,0)] = app.rockImage
+    app.spawnRoom.obsLocations[(0,3)] = app.rockImage
+    app.spawnRoom.obsLocations[(8,3)] = app.rockImage
+    
+    # regular mob room
+    room1 = DungeonRoom("room1")
+    room1.mobs = [ghost,dragon]
+    room1.obsLocations[(3,1)] = app.rockImage
+    room1.obsLocations[(4,1)] = app.rockImage
+    room1.obsLocations[(5,1)] = app.rockImage
+    room1.obsLocations[(3,2)] = app.rockImage
+    room1.obsLocations[(4,2)] = app.rockImage
+    room1.obsLocations[(5,2)] = app.rockImage
+    room1.mobs = [dragon,ghost]
+    room1.map = [[0,0,0,0,0,0,0,0,0],
+                 [0,0,0,1,1,1,0,0,0],
+                 [0,0,0,1,1,1,0,0,0],
+                 [0,0,0,0,0,0,0,0,0],]
+    app.roomsList.append(room1)
+
+    # treasureRoom
+    app.treasureRoom = DungeonRoom("treasureRoom")
+    app.treasureRoom.obsLocations[(4,1)] = app.closedChest
+
+    # bossRoom
+    app.bossRoom = DungeonRoom("bossRoom")
+    
+    # shopRoom 
+    app.shopRoom = DungeonRoom("shopRoom")
+
+    # secretRoom
+    app.secretRoom = DungeonRoom("secretRoom")
+
+
+def fillRooms(app):
+    rows = len(app.map)
+    cols = len(app.map[0])
+    centRow = rows//2
+    centCol = cols//2
+    app.map[centRow][centCol] = app.spawnRoom
+    for row in range(rows):
+        for col in range(cols):
+            if app.map[row][col] == 1:
+                randomRoom = random.randint(0,len(app.roomsList)-1)
+                app.map[row][col] = app.roomsList[randomRoom]
+            elif app.map[row][col] == "bossRoom":
+                app.map[row][col] = app.bossRoom
+
+###############################################
 # Graphics stuff
 
-# CITATION: sprite code based on class notes and Image/PIL TA Mini-Lecture
-# https://www.cs.cmu.edu/~112/notes/notes-animations-part4.html
-
-fakeMap = [[leftBossRoom, None, None,       None, shopRoom2],
-              [None,          None, None,       None, None],
-              [None,          None, potionRoom, None, None],
-              [None,          None, None,       None, None],
-              [None,          None, testRoom,       None, None],
-              [None,          testRoom, testRoom,  testRoom, None]]
 
 def appStarted(app):
     # map/general game mechanic variables
     app.count = 0
     app.timerDelay = 70
-    app.map = fakeMap
-    app.curRoom = (5,2)
+    app.level = 1
+    app.targetRooms = getTargetRooms(app.level)
+    app.map = startMakeRooms(app.targetRooms)
+    # fill normal rooms with different room templates
+    app.curRoom = (3,3)
     app.curRoomCX = app.width/2
     app.curRoomCY = app.height/2
     app.newRoom = 0
+    initObstacles(app)
+    initRooms(app)
+    fillRooms(app)
+    app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
 
     # character variables
     app.charX = app.width//2
@@ -97,10 +112,14 @@ def appStarted(app):
     app.charHP = 5
 
     # mobs
-    app.mobs = [dragon,ghost]
+    app.mobs = []
     for mob in app.mobs:
         mobImageInit(mob,app)
 
+
+
+# CITATION: sprite code based on class notes and Image/PIL TA Mini-Lecture
+# https://www.cs.cmu.edu/~112/notes/notes-animations-part4.html
 # IMAGE CITATION: 
 # character sprite: https://www.pngegg.com/en/png-nehup
 # stone background: I made this, but I used a stone brick texture -
@@ -159,11 +178,37 @@ def mobImageInit(mob,app):
         mob.sprites[newDir] = tempSprites
     mob.width,mob.height = mob.sprites["idle"][0].size
 
+# pixels where floor starts: x: 14*5, y: 16*5
 
 def redrawAll(app,canvas):
     # --background
     canvas.create_image(app.curRoomCX,app.curRoomCY,image = 
                         ImageTk.PhotoImage(app.bgImage))
+    # temporary grid to check obstacle placement
+    for p in range(4):
+        for q in range(9):
+            x0 = 70+95*q
+            y0 = 80+95*p
+            x1 = x0 + 95
+            y1 = y0 + 95
+            canvas.create_rectangle(x0,y0,x1,y1)
+    for obsLoc in app.roomType.obsLocations:
+        canvas.create_image((obsLoc[0]+0.5)*95+70,(obsLoc[1]+0.5)*95+80,image = ImageTk.PhotoImage(app.roomType.obsLocations[obsLoc]))
+    # doors:
+    dirs = [(0,1),(1,0),(0,-1),(-1,0)]
+    for dir in dirs:
+        newRow = app.curRoom[0] + dir[0]
+        newCol = app.curRoom[1] + dir[1]
+        if app.map[newRow][newCol] != 0:
+            if dir == (0,-1):
+                canvas.create_rectangle(app.width/2-25,0,app.width/2+25,80, fill = "black")
+            elif dir == (0,1):
+                canvas.create_rectangle(app.width/2-25,app.height-40,app.width/2+25,app.height, fill = "black")
+            elif dir == (-1,0):
+                canvas.create_rectangle(0,app.height/2-25,70,app.height/2+25, fill = "black")
+            elif dir == (1,0):
+                canvas.create_rectangle(app.width-75,app.height/2-25,app.width,app.height/2+25, fill = "black")
+    
     # --character
     spriteImage = app.sprites[app.direction][app.charSpriteCounter]
     if app.charHP > 0:
@@ -177,15 +222,16 @@ def redrawAll(app,canvas):
         canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
         for proj in mob.proj:
             canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
-    # screen for room switch
-    if app.newRoom > 0:
-        canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
     for i in range(app.charHP):
         x0 = 20 + i*(app.lifeWidth + 10)
         y0 = 20
         x1 = 20 + (i+1)*(app.lifeWidth + 10)
         y1 = app.lifeHeight
         canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
+    # screen for room switch
+    if app.newRoom > 0:
+        canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
+    
 
 def timerFired(app):
     app.count += 1
@@ -209,6 +255,7 @@ def timerFired(app):
         # slows down mob atks
         if app.count % 10 == 0:
             mob.atk(app,10)
+            # the mob is attacking the player - melee
             if ((mob.cx) >= (app.charX - app.charWidth/2) and
                 (mob.cx) <= (app.charX + app.charWidth/2) and
                 (mob.cy) >= (app.charY - app.charHeight/2) and
@@ -265,21 +312,44 @@ def moveChar(app,amount):
         app.charX = newX
         app.charY = newY
     else:
-        if newX > rightWall and app.curRoom[1] + 1 < len(app.map[0]):
-            app.charX = 1 * app.width/12 + 1
-            app.bgImage = app.loadImage(app.map[app.curRoom[0]][app.curRoom[1]+1].background)
-        elif newX < leftWall and app.curRoom[1] - 1 >= 0:
-            app.charX = 11 * app.width/12 - 1
-            app.bgImage = app.loadImage(app.map[app.curRoom[0]][app.curRoom[1]-1].background)
-        elif newY < topWall and app.curRoom[0] - 1 >= 0:
-            app.charY = 7 * app.height/8 - 1
-            app.bgImage = app.loadImage(app.map[app.curRoom[0]-1][app.curRoom[1]].background)
-        elif newY > botWall and app.curRoom[0] + 1 < len(app.map):
-            app.charY = app.height/8 + 1
-            app.bgImage = app.loadImage(app.map[app.curRoom[0]+1][app.curRoom[1]].background)
-        app.newRoom = 10
-        app.isMoving = False   
-            
+        if newX > rightWall:
+            newCol =  app.curRoom[1] + 1
+            newRow = app.curRoom[0]
+            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                app.charX = 1 * app.width/12 + 1
+                app.curRoom = (newRow,newCol)
+                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+                app.newRoom = 10
+                app.isMoving = False   
+        elif newX < leftWall:
+            newCol =  app.curRoom[1] - 1
+            newRow = app.curRoom[0]
+            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                app.charX = 11 * app.width/12 - 1
+                app.curRoom = (newRow,newCol)
+                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+                app.newRoom = 10
+                app.isMoving = False   
+        elif newY < topWall:
+            newCol =  app.curRoom[1]
+            newRow = app.curRoom[0] - 1
+            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                app.charY = 7 * app.height/8 - 1
+                app.curRoom = (newRow,newCol)
+                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+                app.newRoom = 10
+                app.isMoving = False   
+        elif newY > botWall:
+            newCol =  app.curRoom[1]
+            newRow = app.curRoom[0] + 1
+            if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
+                app.charY = app.height/8 + 1
+                app.curRoom = (newRow,newCol)
+                app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+                app.newRoom = 10
+                app.isMoving = False   
+
+
 # allows the character to move diagonally and not just in a straight line
 def keyPressed(app,event):
     app.isMoving = True
