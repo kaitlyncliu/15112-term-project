@@ -32,7 +32,7 @@ def initRooms(app):
     app.spawnRoom.obsLocations[(8,0)] = app.rockImage
     app.spawnRoom.obsLocations[(0,3)] = app.rockImage
     app.spawnRoom.obsLocations[(8,3)] = app.rockImage
-    app.spawnRoom.mobs = []
+    app.spawnRoom.mobs = [dragon]
     
     # regular mob room
     room1 = DungeonRoom("room1")
@@ -51,7 +51,7 @@ def initRooms(app):
     app.roomsList.append(room1)
 
     room2 = DungeonRoom("room2")
-    room2.mobs = [boss]
+    room2.mobs = [dragon]
     room2Obs = [((1,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
     room2.obsLocations = dict(room2Obs)
     room2.map = [[0,0,0,0,0,0,0,1,0],
@@ -362,7 +362,7 @@ def timerFired(app):
                     (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
                     (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
                     (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                    mob.gotHit(proj.strength*25,app)
+                    mob.gotHit(proj.strength*25)
                     app.charProj.pop(j)
                 else:
                     j += 1

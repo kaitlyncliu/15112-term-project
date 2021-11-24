@@ -47,9 +47,13 @@ class Mob(object):
             self.cx += amt*3 * math.cos(angle)
             self.cy += amt*3 * math.sin(angle)
         else:
-            #charX, charY = convertToGrid(app.charY,app.charX)
-            #selfX, selfY = convertToGrid(self.cy,self.cx)
-            charX, charY = app.charX, app.charY
+            charX, charY = convertToGrid(app.charY,app.charX)
+            charLoc = (charX,charY)
+            print(f'charLoc = {charLoc}')
+            selfX, selfY = convertToGrid(self.cy,self.cx)
+            selfLoc = (selfX,selfY)
+            print(f'selfLoc = {selfLoc}')
+            '''charX, charY = app.charX, app.charY
             difX = self.cx - charX
             difY = self.cy - charY
             angle = math.atan2(difY,difX)
@@ -58,15 +62,16 @@ class Mob(object):
             gridRow, gridCol = convertToGrid(newX,newY)
             if app.roomType.map[gridRow][gridCol] != 1:
                 self.cx = newX
-                self.cy = newY
-            '''path = aStar(app.roomType.map,(selfX,selfY),(charX,charY))
+                self.cy = newY'''
+            path = aStar(app.roomType.map,(charLoc),(selfLoc))
             if path != None:
                 print(path[0][1],path[0][0])
-                difX = abs(self.cx - path[0][0]*19)
-                difY = abs(self.cy - path[0][1]*19)
+                difX = selfX - path[0][0]
+                difY = selfY - path[0][1]
                 angle = math.atan2(difY,difX)
-                self.cx += amt * math.cos(angle)
-                self.cy += amt * math.sin(angle)'''
+                print(angle)
+                self.cx -= amt * math.cos(angle)
+                self.cy -= amt * math.sin(angle)
 
     def atk(self,app,dmg):
         pass
@@ -162,6 +167,14 @@ def convertToGrid(x,y):
     col = (x-70)//95
     return (int(row),int(col))
 
+
+def convertToGridSingle(x,type):
+    if type == "x":  
+        row = (x-70)//95
+    elif type == "y":
+        row = (x-80)//95
+    return (int(row))
+
 # CITATION: Used this tutorial: https://brilliant.org/wiki/a-star-search/
 def aStar(roomMap,start,end):
     startx, starty = start
@@ -219,11 +232,10 @@ def getPath(endNode):
         curNode = curNode.parent
     return path[::-1]
 
-"""
-room2 = [[0,0,0,0,0,1,0,1,0],
-        [0,1,0,1,0,1,0,0,0],
-        [1,0,0,1,0,0,0,0,0],
-        [0,0,1,0,0,0,0,0,0],]
 
-print(aStar(room2,(2,1),(2,6)))
-"""
+room2 = [[0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0],]
+
+print(aStar(room2,(2,2),(4,2)))
