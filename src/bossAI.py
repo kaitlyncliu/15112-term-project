@@ -13,8 +13,8 @@ class Boss(Mob):
         self.totalSprites = 8
         self.initx = 300
         self.inity = 200
-        self.cx = 500 #random.randint(100,900)
-        self.cy = 250 #random.randint(50,450)
+        self.cx = 500 
+        self.cy = 250 
         self.type = "idle"
         self.state = "idle"
         self.proj = []
@@ -42,8 +42,10 @@ class Boss(Mob):
     def prepATK(self):
         self.next = "attack"
     
-    def skill(self):
+    def skill(self,app):
         self.type = "skill"
+        if distance(app.charX,app.charY,self.cx,self.cy) <= 30:
+            app.charHP -=1
 
 class StateMachine(object):
     def setState(self,enemy,app):
@@ -58,6 +60,6 @@ class StateMachine(object):
             enemy.prepATK()
         elif enemy.next == "skill":
             enemy.state = "skill"
-            enemy.skill()
+            enemy.skill(app)
 
 bossStateMac = StateMachine()
