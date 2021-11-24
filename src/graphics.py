@@ -212,6 +212,7 @@ def mobImageInit(mob,app):
         mob.sprites[newDir] = tempSprites
     mob.width,mob.height = mob.sprites["idle"][0].size
 
+# IMAGE CITATION: https://darkpixel-kronovi.itch.io/undead-executioner
 def bossImageInit(boss,app):
     boss.sprites = dict()
     states = ["attack","skill"]
