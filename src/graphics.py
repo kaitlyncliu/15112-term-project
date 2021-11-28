@@ -32,7 +32,6 @@ def initRooms(app):
     app.spawnRoom.obsLocations[(8,0)] = app.rockImage
     app.spawnRoom.obsLocations[(0,3)] = app.rockImage
     app.spawnRoom.obsLocations[(8,3)] = app.rockImage
-    app.spawnRoom.mobs = [dragon]
     
     # regular mob room
     room1 = DungeonRoom("room1")
@@ -43,7 +42,7 @@ def initRooms(app):
     room1.obsLocations[(3,2)] = app.rockImage
     room1.obsLocations[(4,2)] = app.rockImage
     room1.obsLocations[(5,2)] = app.rockImage
-    room1.mobs = [ghost]
+    room1.mobs = [dragon]
     room1.map = [[0,0,0,0,0,0,0,0,0],
                  [0,0,0,1,1,1,0,0,0],
                  [0,0,0,1,1,1,0,0,0],
@@ -102,13 +101,15 @@ def fillRooms(app):
 def appStarted(app):
     # map/general game mechanic variables
     app.count = 0
-    app.paused = False
+    app.paused = True
     app.timerDelay = 100
     app.level = 1
     app.targetRooms = getTargetRooms(app.level)
     app.map = startMakeRooms(app.targetRooms)
     app.win = False
     app.lose = False
+    app.start = 0
+
     # fill normal rooms with different room templates
     app.curRoom = (3,3)
     app.curRoomCX = app.width/2
@@ -155,12 +156,16 @@ def appStarted(app):
 # stone background: I made this, but I used a stone brick texture -
 # (https://pahiroarts.artstation.com/projects/n3n5o) - and edited it
 # poop: https://www.artstation.com/artwork/Yea8bb
+# start screen: text created by me, but background from here: https://lil-cthulhu.itch.io/pixel-art-mushroom-cave-background
+# pause screen: same as start screen
 def initImages(app):
     # background --
     app.winImage = app.loadImage("youWin.jpg")
     app.winImage = app.scaleImage(app.winImage,2)
     app.loseImage = app.loadImage("youLose.jpg")
     app.loseImage = app.scaleImage(app.loseImage,0.5)
+    app.startImage = app.loadImage("startScreen.png")
+    app.pauseImage = app.loadImage("pauseImage.png")
     app.bgImage = app.loadImage('stoneBG.png')
     app.bgImage = app.bgImage.resize((app.width,app.height))
     app.bgWidth,app.bgHeight = app.bgImage.size
@@ -244,6 +249,19 @@ def bossImageInit(boss,app):
             sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
             tempSprite.append(sprite)
     boss.sprites["idle"] = tempSprite
+    boss.minion = Mob("minion", 50)
+    boss.minion.sprite = app.loadImage("minion.png")
+    boss.minion.sprite = app.scaleImage(boss.minion.sprite,3)
+    boss.minion.spriteWidth, boss.minion.spriteHeight = boss.minion.sprite.size
+    boss.minion.sprites = []
+    for row in range(2):
+        for col in range(3):
+            topLeftX = boss.minion.spriteWidth*col/4
+            botRightX = boss.minion.spriteWidth*(col+1)/4
+            topLeftY = boss.minion.spriteHeight*row/2
+            botRightY = boss.minion.spriteHeight*(row+1)/2
+            sprite = boss.minion.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+            boss.minion.sprites.append(sprite)
 
 # pixels where floor starts: x: 14*5, y: 16*5
 
@@ -290,6 +308,10 @@ def redrawAll(app,canvas):
         canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
         for proj in mob.proj:
             canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
+        '''if isinstance(mob,Boss):
+            for minion in mob.minion:
+                minionSprite = boss.minion.sprites[minion.spriteCounter]
+                canvas.create_image(minion.cx,minion.cy,image = ImageTk.PhotoImage(minionSprite))'''
     for i in range(app.charHP):
         x0 = 20 + i*(app.lifeWidth + 10)
         y0 = 20
@@ -301,12 +323,18 @@ def redrawAll(app,canvas):
     if app.newRoom > 0:
         canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
     
-    if app.lose == True:
-        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))
+    '''if app.lose == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))'''
 
     if app.win == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
     
+    if app.paused == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.pauseImage))
+
+    if app.start == 0:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.startImage))
+
 
 def timerFired(app):
     if app.paused == False:
@@ -363,7 +391,7 @@ def timerFired(app):
                     (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
                     (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
                     (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                    mob.gotHit(proj.strength*25)
+                    mob.gotHit(proj.strength*25,app)
                     app.charProj.pop(j)
                 else:
                     j += 1
@@ -385,10 +413,10 @@ def convertToGrid(x,y):
     return (int(row),int(col))
 
 def moveChar(app,amount):
-    leftWall = app.width/12
-    rightWall = 11 * app.width/12
-    topWall = app.height/8
-    botWall = 7 * app.height/8
+    leftWall = 75
+    rightWall = app.width - 70
+    topWall = 75
+    botWall = app.height - 50
     # accounts for diagonal motion needing to move less
     if ((app.movingRight or app.movingLeft) and (app.movingUp or app.movingDown)):
         amount = amount / math.sqrt(2)
@@ -411,6 +439,8 @@ def moveChar(app,amount):
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
                     app.charX = 1 * app.width/12 + 1
                     app.curRoom = (newRow,newCol)
+                    app.newRoom = 5
+                    app.isMoving = False
         elif newX < leftWall:
             if app.charY > app.height/2-30 and app.charY < app.height/2+30:
                 newCol =  app.curRoom[1] - 1
@@ -418,6 +448,8 @@ def moveChar(app,amount):
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
                     app.charX = 11 * app.width/12 - 1
                     app.curRoom = (newRow,newCol)
+                    app.newRoom = 5
+                    app.isMoving = False
         elif newY < topWall:
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
@@ -425,6 +457,8 @@ def moveChar(app,amount):
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
                     app.charY = 7 * app.height/8 - 1
                     app.curRoom = (newRow,newCol)
+                    app.newRoom = 5
+                    app.isMoving = False
         elif newY > botWall:
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
@@ -432,14 +466,14 @@ def moveChar(app,amount):
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
                     app.charY = app.height/8 + 1
                     app.curRoom = (newRow,newCol) 
+                    app.newRoom = 5
+                    app.isMoving = False
         else:
             return
         app.mobs = app.roomType.mobs
         app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
         for mob in app.mobs:
             mob.respawn(app)
-        app.newRoom = 10
-        app.isMoving = False
         print(app.curRoom)
 
 
@@ -472,6 +506,10 @@ def keyReleased(app,event):
         app.charHP = 5
     elif event.key == "p":
         app.paused = not app.paused
+        app.start += 1
+    elif event.key == "q":
+        app.start = 0
+        app.paused = True
     # None of the movement keys are being pressed
     if (app.movingRight == False and app.movingLeft == False and 
         app.movingUp == False and app.movingDown == False):
