@@ -24,6 +24,9 @@ class Mob(object):
         self.health = health
         self.spriteCounter = 0
         self.totalSprites = 8
+        row = random.randint(0,3)
+        col = random.randint(0,8)
+
         self.cx = random.randint(100,850)
         self.cy = random.randint(200,400)
         self.initx = self.cx
@@ -60,24 +63,30 @@ class Mob(object):
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
-            self.cx += amt*3 * math.cos(angle)
-            self.cy += amt*3 * math.sin(angle)
+            newX = self.cx + amt*3 * math.cos(angle)
+            newY = self.cy + amt*3 * math.sin(angle)
+            if inMapBounds(app,newX,newY):
+                self.cx = newX
+                self.cy = newY
         else:
             path = aStar(app.roomType.map,(charLoc),(selfLoc))
             print(path,selfLoc,charLoc)
             if path != None and len(path) > 0:
                 nextRow = path[1][0]
                 nextCol = path[1][1]
+                tempX = self.cx
+                tempY = self.cy
                 print(nextRow,selfRow,nextCol,selfCol)
                 if nextRow < selfRow and inMapBounds(app,self.cx,self.cy-amt):
-                    self.cy -= amt
+                    self.cy -= amt*2
                 elif nextRow > selfRow and inMapBounds(app,self.cx,self.cy+amt):
-                    self.cy += amt
+                    self.cy += amt*2
                 if nextCol <  selfCol and inMapBounds(app,self.cx-amt,self.cy):
-                    self.cx -= amt
+                    self.cx -= amt*2
                 elif nextCol > selfCol and inMapBounds(app,self.cx-amt,self.cy):
-                    self.cx += amt
-                print("moved")
+                    self.cx += amt*2
+                if inMapBounds(app,self.cx,self.cy) == False:
+                    self.cx, self.cy = tempX, tempY
         self.cx -= 10
         self.cy -= 20
 
@@ -230,11 +239,3 @@ def getPath(endNode):
         path.append((curNode.row,curNode.col))
         curNode = curNode.parent
     return path
-
-
-room2 = [[0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0],]
-
-print(aStar(room2,(3,0),(2,6)))

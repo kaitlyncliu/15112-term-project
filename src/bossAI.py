@@ -42,6 +42,7 @@ class Boss(Mob):
         self.next = "skill"
     
     def prepATK(self):
+        self.type = "enraged"
         self.next = "attack"
     
     def skill(self,app):

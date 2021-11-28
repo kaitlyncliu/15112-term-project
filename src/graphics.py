@@ -35,7 +35,6 @@ def initRooms(app):
     
     # regular mob room
     room1 = DungeonRoom("room1")
-    room1.mobs = [ghost,dragon]
     room1.obsLocations[(3,1)] = app.rockImage
     room1.obsLocations[(4,1)] = app.rockImage
     room1.obsLocations[(5,1)] = app.rockImage
@@ -109,6 +108,7 @@ def appStarted(app):
     app.win = False
     app.lose = False
     app.start = 0
+    app.changeRoom = False
 
     # fill normal rooms with different room templates
     app.curRoom = (3,3)
@@ -158,6 +158,7 @@ def appStarted(app):
 # poop: https://www.artstation.com/artwork/Yea8bb
 # start screen: text created by me, but background from here: https://lil-cthulhu.itch.io/pixel-art-mushroom-cave-background
 # pause screen: same as start screen
+# loading screen: same as start screen
 def initImages(app):
     # background --
     app.winImage = app.loadImage("youWin.jpg")
@@ -166,6 +167,7 @@ def initImages(app):
     app.loseImage = app.scaleImage(app.loseImage,0.5)
     app.startImage = app.loadImage("startScreen.png")
     app.pauseImage = app.loadImage("pauseImage.png")
+    app.loadingImage = app.loadImage("loadingImage.png")
     app.bgImage = app.loadImage('stoneBG.png')
     app.bgImage = app.bgImage.resize((app.width,app.height))
     app.bgWidth,app.bgHeight = app.bgImage.size
@@ -236,19 +238,21 @@ def bossImageInit(boss,app):
                 tempSprites.append(sprite)
         boss.sprites[states[i]] = tempSprites
     boss.width,boss.height = boss.sprites["attack"][0].size
-    boss.sprite = app.loadImage('idle.png')
-    boss.sprite = app.scaleImage(boss.sprite,4)
-    boss.spriteWidth, boss.spriteHeight = boss.sprite.size
-    tempSprite = []
-    for row in range(2):
-        for col in range(4):
-            topLeftX = boss.spriteWidth*col/4
-            botRightX = boss.spriteWidth*(col+1)/4
-            topLeftY = boss.spriteHeight*row/2
-            botRightY = boss.spriteHeight*(row+1)/2
-            sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-            tempSprite.append(sprite)
-    boss.sprites["idle"] = tempSprite
+    states2 = ["idle", "enraged"]
+    for i in range(len(states2)):
+        boss.sprite = app.loadImage(f'{states2[i]}.png')
+        boss.sprite = app.scaleImage(boss.sprite,4)
+        boss.spriteWidth, boss.spriteHeight = boss.sprite.size
+        tempSprite = []
+        for row in range(2):
+            for col in range(4):
+                topLeftX = boss.spriteWidth*col/4
+                botRightX = boss.spriteWidth*(col+1)/4
+                topLeftY = boss.spriteHeight*row/2
+                botRightY = boss.spriteHeight*(row+1)/2
+                sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+                tempSprite.append(sprite)
+        boss.sprites[states2[i]] = tempSprite
     boss.minion = Mob("minion", 50)
     boss.minion.sprite = app.loadImage("minion.png")
     boss.minion.sprite = app.scaleImage(boss.minion.sprite,3)
@@ -321,19 +325,20 @@ def redrawAll(app,canvas):
     
     # screen for room switch
     if app.newRoom > 0:
-        canvas.create_rectangle(0,0,app.width,app.height, fill = "black")
-    
-    '''if app.lose == True:
-        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))'''
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loadingImage))
 
-    if app.win == True:
-        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
-    
     if app.paused == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.pauseImage))
 
+    if app.win == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
+
+    if app.lose == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))
+    
     if app.start == 0:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.startImage))
+    
 
 
 def timerFired(app):
@@ -414,7 +419,7 @@ def convertToGrid(x,y):
 
 def moveChar(app,amount):
     leftWall = 75
-    rightWall = app.width - 70
+    rightWall = app.width - 75
     topWall = 75
     botWall = app.height - 50
     # accounts for diagonal motion needing to move less
@@ -428,53 +433,54 @@ def moveChar(app,amount):
     if (newX <= rightWall and newX >= leftWall and 
         newY >= topWall and newY <= botWall):
         gridRow, gridCol = convertToGrid(newX,newY)
-        if app.roomType.map[gridRow][gridCol] != 1:
-            app.charX = newX
-            app.charY = newY
+        if gridRow < 4 and gridRow >=0 and gridCol < 9 and gridCol >= 0:
+            if app.roomType.map[gridRow][gridCol] != 1:
+                app.charX = newX
+                app.charY = newY
     else:
         if newX > rightWall:
             if app.charY > app.height/2-30 and app.charY < app.height/2+30:
                 newCol =  app.curRoom[1] + 1
                 newRow = app.curRoom[0]
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                    app.charX = 1 * app.width/12 + 1
-                    app.curRoom = (newRow,newCol)
-                    app.newRoom = 5
-                    app.isMoving = False
+                    app.charX = 85
+                    app.curRoom = (newRow,newCol) 
+                    app.changeRoom = True
         elif newX < leftWall:
             if app.charY > app.height/2-30 and app.charY < app.height/2+30:
                 newCol =  app.curRoom[1] - 1
                 newRow = app.curRoom[0]
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                    app.charX = 11 * app.width/12 - 1
-                    app.curRoom = (newRow,newCol)
-                    app.newRoom = 5
-                    app.isMoving = False
+                    app.charX = app.width - 80
+                    app.curRoom = (newRow,newCol) 
+                    app.changeRoom = True
         elif newY < topWall:
+            print("up")
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
                 newRow = app.curRoom[0] - 1
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                    app.charY = 7 * app.height/8 - 1
-                    app.curRoom = (newRow,newCol)
-                    app.newRoom = 5
-                    app.isMoving = False
+                    app.charY = app.height - 60
+                    app.curRoom = (newRow,newCol) 
+                    app.changeRoom = True
         elif newY > botWall:
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
                 newRow = app.curRoom[0] + 1
                 if inBounds(app.map,newRow,newCol) and app.map[newRow][newCol] != 0:
-                    app.charY = app.height/8 + 1
+                    app.charY = 85
                     app.curRoom = (newRow,newCol) 
-                    app.newRoom = 5
-                    app.isMoving = False
+                    app.changeRoom = True
         else:
             return
-        app.mobs = app.roomType.mobs
-        app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
-        for mob in app.mobs:
-            mob.respawn(app)
-        print(app.curRoom)
+        if app.changeRoom == True:
+            app.newRoom = 5
+            app.isMoving = False
+            app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
+            app.mobs = app.roomType.mobs
+            for mob in app.mobs:
+                mob.respawn(app)
+            print(app.curRoom)
 
 
 # allows the character to move diagonally and not just in a straight line
