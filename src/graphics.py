@@ -294,8 +294,8 @@ def timerFired(app):
             else:
                 i += 1
         for mob in app.mobs:
+            mob.spriteCounter = int((mob.spriteCounter + 1) % mob.totalSprites)
             if not isinstance(mob,Boss):
-                mob.spriteCounter = (mob.spriteCounter + 1) % mob.totalSprites
                 mob.move(app,5)
                 # slows down mob atks
                 if app.count % 20 == 0:
@@ -325,17 +325,17 @@ def timerFired(app):
                             app.paused = True
                     else:
                         k += 1
-                j = 0
-                while j < len(app.charProj):
-                    proj = app.charProj[j]
-                    if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
-                        (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
-                        (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
-                        (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                        mob.gotHit(proj.strength*25,app)
-                        app.charProj.pop(j)
-                    else:
-                        j += 1
+            j = 0
+            while j < len(app.charProj):
+                proj = app.charProj[j]
+                if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
+                    (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
+                    (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
+                    (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
+                    mob.gotHit(proj.strength*25,app)
+                    app.charProj.pop(j)
+                else:
+                    j += 1
             h = 0
             while h < len(app.mobs):
                 if app.mobs[h].type == "death":
@@ -392,7 +392,6 @@ def moveChar(app,amount):
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True
         elif newY < topWall:
-            print("up")
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
                 newRow = app.curRoom[0] - 1
@@ -459,7 +458,6 @@ def keyReleased(app,event):
             for j in range(7):
                 if app.map[i][j] == "bossRoom":
                     bossLoc = (i,j)
-                    print("boss")
         app.curRoom = bossLoc
         app.newRoom = 5
         app.isMoving = False
