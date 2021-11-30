@@ -47,6 +47,7 @@ def startMakeRooms(targetRooms):
 def makeSpecialRooms(map, endRooms):
     if (3,3) in endRooms:
         endRooms.remove((3,3))
+    roomMade = False
     for i in range(len(endRooms)):
         tempRoom = endRooms[-i]
         d = distance(tempRoom[0],tempRoom[1],3,3)
@@ -55,8 +56,12 @@ def makeSpecialRooms(map, endRooms):
             print(endRooms)
             bossLocation = endRooms[-i]
             map[bossLocation[0]][bossLocation[1]] = "bossRoom"
+            roomMade = True
             endRooms.pop(-i)
             break
+    if roomMade == False:
+        map[endRooms[-i][0]][endRooms[-i][1]] = "bossRoom"
+        endRooms.pop(-i)
     if len(endRooms) > 0:
         treasureLocation = endRooms[-1]
         map[treasureLocation[0]][treasureLocation[1]] = "treasureRoom"
@@ -182,3 +187,9 @@ class DungeonRoom(object):
 
     def __repr__(self):
         return self.name
+
+    def __eq__(self,other):
+        if self.name == other:
+            return True
+        else:
+            return False

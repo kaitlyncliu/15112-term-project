@@ -80,9 +80,10 @@ class Mob(object):
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
-            newX = self.cx + amt*3 * math.cos(angle)
-            newY = self.cy + amt*3 * math.sin(angle)
-            if inMapBounds(app,newX,newY):
+            newX = self.cx + amt*2 * math.cos(angle)
+            newY = self.cy + amt*2 * math.sin(angle)
+            newRow, newCol = convertToGrid(newX,newY)
+            if inMapBounds(app,newX,newY) and app.roomType.map[newRow][newCol] != 1:
                 self.cx = newX
                 self.cy = newY
         else:
@@ -118,13 +119,13 @@ class Mob(object):
 
 class Dragon(Mob):
     def __init__(self,x,y):
-        super().__init__(300,x,y)
+        super().__init__(200,x,y)
         self.name = "dragon"
 
 
 class Ghost(Mob):
     def __init__(self,x,y):
-        super().__init__(200,x,y)
+        super().__init__(100,x,y)
         self.name = "ghost"
 
     def move(self,app,amt):
@@ -141,8 +142,12 @@ class Ghost(Mob):
             difX = self.cx - app.charProj[closestProj].cx
             difY = self.cy - app.charProj[closestProj].cy
             angle = math.atan2(difY,difX)
-            self.cx += amt*3 * math.cos(angle)
-            self.cy += amt*3 * math.sin(angle)
+            newX = self.cx + amt*2 * math.cos(angle)
+            newY = self.cy + amt*2 * math.sin(angle)
+            newRow, newCol = convertToGrid(newX,newY)
+            if inMapBounds(app,newX,newY) and app.roomType.map[newRow][newCol] != 1:
+                self.cx = newX
+                self.cy = newY
     
     def atk(self,app,dmg):
         charX, charY = app.charX, app.charY

@@ -30,18 +30,22 @@ def initRooms(app):
     
     # regular mob room
     room1 = DungeonRoom("room1")
-    room1.obsLocations[(3,1)] = app.rockImage
     room1.obsLocations[(4,1)] = app.rockImage
     room1.obsLocations[(5,1)] = app.rockImage
     room1.obsLocations[(3,2)] = app.rockImage
     room1.obsLocations[(4,2)] = app.rockImage
-    room1.obsLocations[(5,2)] = app.rockImage
+    room1.obsLocations[(7,0)] = app.rockImage
+    room1.obsLocations[(7,1)] = app.rockImage
+    room1.obsLocations[(7,2)] = app.rockImage
+    room1.obsLocations[(1,1)] = app.rockImage
+    room1.obsLocations[(1,2)] = app.rockImage
+    room1.obsLocations[(1,3)] = app.rockImage
     room1.mobs = [Ghost(425,375),Ghost(575,125)]
     for mob in room1.mobs:
         app.globalMobs.append(mob)
     room1.map = [[0,0,0,0,0,0,0,1,0],
-                 [0,1,0,1,1,1,0,1,0],
-                 [0,1,0,1,1,1,0,1,0],
+                 [0,1,0,0,1,1,0,1,0],
+                 [0,1,0,1,1,0,0,1,0],
                  [0,1,0,0,0,0,0,0,0],]
     app.roomsList.append(room1)
 
@@ -49,7 +53,7 @@ def initRooms(app):
     room2.mobs = [Dragon(500,200),Dragon(500,300),Ghost(500,250)]
     for mob in room2.mobs:
         app.globalMobs.append(mob)
-    room2Obs = [((1,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
+    room2Obs = [((1,0),app.rockImage),((1,3),app.rockImage),((7,0),app.rockImage),((7,3),app.rockImage),((3,0),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((5,1),app.rockImage),((5,2),app.rockImage),((5,3),app.rockImage)]
     room2.obsLocations = dict(room2Obs)
     room2.map = [[0,1,0,1,0,0,0,1,0],
                  [0,0,0,1,0,1,0,0,0],
@@ -69,7 +73,6 @@ def initRooms(app):
     app.bossRoom.mobs = [Boss()]
     for mob in app.bossRoom.mobs:
         app.globalMobs.append(mob)
-        mob.machineInit(BossStateMachine(mob))
     
     # shopRoom 
     app.shopRoom = DungeonRoom("shopRoom")
@@ -245,7 +248,7 @@ def redrawAll(app,canvas):
         for proj in mob.proj:
             canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
         if isinstance(mob,Boss):
-            for minion in mob.minion:
+            for minion in mob.minionList:
                 minionSprite = minion.sprites[minion.spriteCounter]
                 canvas.create_image(minion.cx,minion.cy,image = ImageTk.PhotoImage(minionSprite))
     for i in range(app.charHP):
@@ -265,8 +268,8 @@ def redrawAll(app,canvas):
     if app.win == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
 
-    if app.lose == True:
-        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))
+    '''if app.lose == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))'''
     
     if app.start == 0:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.startImage))
@@ -291,47 +294,48 @@ def timerFired(app):
             else:
                 i += 1
         for mob in app.mobs:
-            mob.spriteCounter = (mob.spriteCounter + 1) % mob.totalSprites
-            mob.move(app,5)
-            # slows down mob atks
-            if app.count % 10 == 0:
-                mob.atk(app,10)
-                # the mob is attacking the player - melee
-                if ((mob.cx) >= (app.charX - app.charWidth/2) and
-                    (mob.cx) <= (app.charX + app.charWidth/2) and
-                    (mob.cy) >= (app.charY - app.charHeight/2) and
-                    (mob.cy) >= (app.charY + app.charHeight/2)):
-                    app.charHP -= 1
-                    if app.charHP <= 0:
-                        app.lose = True
-                        app.paused = True
-            k = 0
-            while k < len(mob.proj):
-                proj = mob.proj[k]
-                proj.move()
-                # the projectiles hit the character
-                if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
-                    (proj.cx + 5) <= (app.charX + app.charWidth/2) and
-                    (proj.cy + 5) >= (app.charY - app.charHeight/2) and
-                    (proj.cy + 5) <= (app.charY + app.charHeight/2)):
-                    mob.proj.pop(k)
-                    app.charHP -= 1
-                    if app.charHP <= 0:
-                        app.lose = True
-                        app.paused = True
-                else:
-                    k += 1
-            j = 0
-            while j < len(app.charProj):
-                proj = app.charProj[j]
-                if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
-                    (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
-                    (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
-                    (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                    mob.gotHit(proj.strength*25,app)
-                    app.charProj.pop(j)
-                else:
-                    j += 1
+            if not isinstance(mob,Boss):
+                mob.spriteCounter = (mob.spriteCounter + 1) % mob.totalSprites
+                mob.move(app,5)
+                # slows down mob atks
+                if app.count % 20 == 0:
+                    mob.atk(app,10)
+                    # the mob is attacking the player - melee
+                    if ((mob.cx) >= (app.charX - app.charWidth/2) and
+                        (mob.cx) <= (app.charX + app.charWidth/2) and
+                        (mob.cy) >= (app.charY - app.charHeight/2) and
+                        (mob.cy) >= (app.charY + app.charHeight/2)):
+                        app.charHP -= 1
+                        if app.charHP <= 0:
+                            app.lose = True
+                            app.paused = True
+                k = 0
+                while k < len(mob.proj):
+                    proj = mob.proj[k]
+                    proj.move()
+                    # the projectiles hit the character
+                    if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
+                        (proj.cx + 5) <= (app.charX + app.charWidth/2) and
+                        (proj.cy + 5) >= (app.charY - app.charHeight/2) and
+                        (proj.cy + 5) <= (app.charY + app.charHeight/2)):
+                        mob.proj.pop(k)
+                        app.charHP -= 1
+                        if app.charHP <= 0:
+                            app.lose = True
+                            app.paused = True
+                    else:
+                        k += 1
+                j = 0
+                while j < len(app.charProj):
+                    proj = app.charProj[j]
+                    if ((proj.cx + app.poopRad) >= (mob.cx - mob.width/2) and 
+                        (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
+                        (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
+                        (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
+                        mob.gotHit(proj.strength*25,app)
+                        app.charProj.pop(j)
+                    else:
+                        j += 1
             h = 0
             while h < len(app.mobs):
                 if app.mobs[h].type == "death":
@@ -342,7 +346,7 @@ def timerFired(app):
             app.curProjStrength += 1
         for mob in app.mobs:
             if isinstance(mob,Boss):
-                mob.stateMachine.run()
+                mob.stateMachine.run(app)
                 print(mob.stateMachine.curState)
 
 def convertToGrid(x,y):
@@ -449,6 +453,23 @@ def keyReleased(app,event):
     elif event.key == "q":
         app.start = 0
         app.paused = True
+    elif event.key == "0":
+        bossLoc = None
+        for i in range(7):
+            for j in range(7):
+                if app.map[i][j] == "bossRoom":
+                    bossLoc = (i,j)
+                    print("boss")
+        app.curRoom = bossLoc
+        app.newRoom = 5
+        app.isMoving = False
+        app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
+        app.mobs = app.roomType.mobs
+        for mob in app.mobs:
+            mob.respawn(app)
+        print(app.curRoom)
+        app.charX = 500
+        app.charY = 350
     # None of the movement keys are being pressed
     if (app.movingRight == False and app.movingLeft == False and 
         app.movingUp == False and app.movingDown == False):

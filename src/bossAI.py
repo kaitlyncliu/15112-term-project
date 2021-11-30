@@ -6,50 +6,53 @@ def distance(x0,y0,x1,y1):
     return math.sqrt((x0-x1)**2+(y0-y1)**2)
 
 class State(object):
-    def __init__(self,boss):
+    def __init__(self,mac):
         self.timer = 0
-        self.boss = boss
-        self.stateMachine = boss.stateMachine
+        self.stateMachine = mac
 
     def start(self):
         self.timer = 0
     
 class GotHit(State):
     def run(self,app):
-        self.boss.type = "idle"
-        self.boss.totalSprites = 8
-        self.boss.curState = Enraged(app)
-        self.boss.changeState = True
+        self.stateMachine.boss.type = "idle"
+        self.stateMachine.boss.totalSprites = 8
+        self.stateMachine.curState = Enraged(self.stateMachine)
+        self.stateMachine.changeState = True
 
 class Move(State):
     def run(self,app):
-        self.boss.type = "idle"
-        self.boss.totalSprites = 8
-        self.boss.move(app,10)
-        if distance(app.charX,app.charY,self.boss.cx,self.boss.cy) <= 50:
-            self.stateMachine.curState = Enraged(app)
+        b = self.stateMachine.boss
+        b.type = "idle"
+        b.totalSprites = 8
+        b.move(app,10)
+        if distance(app.charX,app.charY,b.cx,b.cy) <= 50:
+            self.stateMachine.curState = Enraged(self.stateMachine)
             self.stateMachine.changeState = True
-        if self.timer > 16 and self.boss.stage > 1:
-            self.stateMachine.curState = SpawnMinion(app)
+        if self.timer > 16 and b.stage > 1:
+            self.stateMachine.curState = SpawnMinion(self.stateMachine)
             self.stateMachine.changeState = True
+        self.timer += 1
 
 class Attack(State): 
     def run(self,app):
-        self.boss.type = "attack"
-        self.boss.totalSprites = 12
-        if distance(app.charX,app.charY,self.boss.cx,self.boss.cy) <= 30 and self.timer > 11:
+        b = self.stateMachine.boss
+        b.type = "attack"
+        b.totalSprites = 12
+        if distance(app.charX,app.charY,b.cx,b.cy) <= 30 and self.timer > 11:
             app.charHP -= 1
         if self.timer > 12:
-            self.stateMachine.curState = Move(app)
+            self.stateMachine.curState = Move(self.stateMachine)
             self.stateMachine.changeState = True
+        self.timer += 1
         
 
 class Enraged(State): 
     def run(self,app):
-        self.boss.type = "enraged"
-        self.boss.totalSprites = 8
+        self.stateMachine.boss.type = "enraged"
+        self.stateMachine.boss.totalSprites = 8
         if self.timer > 5:
-            nextMoves = [Attack(app),Skill(app)]
+            nextMoves = [Attack(self.stateMachine),Skill(self.stateMachine)]
             self.stateMachine.curState = nextMoves[random.randint(0,1)]
             self.stateMachine.changeState = True
         self.timer += 1
@@ -57,29 +60,32 @@ class Enraged(State):
 
 class Skill(State): 
     def run(self,app):
-        self.boss.type = "skill"
-        self.boss.totalSprites = 12
-        if distance(app.charX,app.charY,self.cx,self.cy) <= 30 and self.timer > 11:
+        b = self.stateMachine.boss
+        b.type = "skill"
+        b.totalSprites = 12
+        if distance(app.charX,app.charY,b.boss.cx,b.boss.cy) <= 30 and self.timer > 11:
             app.charHP -= 1
         if self.timer > 12:
-            self.stateMachine.curState = Move(app)
-            self.stateMachine.changeState = True
+            b.curState = Move(self.boss)
+            b.changeState = True
         self.timer += 1
 
 class SpawnMinion(State): 
     def run(self,app):
-        self.boss.type = "idle"
+        self.stateMachine.boss.type = "idle"
         for i in range(random.randint(1,2*self.stage-2)):
-            self.minion = Minion(self.stage)
-            self.minion.imageInit(app)
-            self.minionList.append(self.minion)
+            minion = Minion(self.stage)
+            minion.imageInit(app)
+            self.stateMachine.boss.minionList.append(minion)
         self.timer += 1
+        self.stateMachine.curState = Move(self)
+        self.stateMachine.changeState = True
         
 
 class Death(State):
     def run(self,app):
-        self.boss.type = "death"
-        self.boss.totalSprites = 10
+        self.stateMachine.boss.type = "death"
+        self.stateMachine.boss.totalSprites = 10
         app.win = True
         app.paused = True
 
@@ -106,14 +112,15 @@ class Minion(Mob):
 
 class BossStateMachine(object):
     def __init__(self,boss):
-        self.curState = Move(boss)
+        self.boss = boss
+        self.curState = Move(self)
         self.changeState = False
 
-    def run(self):
+    def run(self,app):
         if self.changeState:
             self.changeState = False
             self.curState.start()
-        self.curState.run()
+        self.curState.run(app)
 
 
 class Boss(Mob):
@@ -134,7 +141,7 @@ class Boss(Mob):
         self.next = "idle"
         self.minionList = []
         self.stage = 1
-        self.stateMachine = None
+        self.stateMachine = BossStateMachine(self)
 
     # IMAGE CITATION: https://darkpixel-kronovi.itch.io/undead-executioner
     def imageInit(self,app):
@@ -188,9 +195,6 @@ class Boss(Mob):
             sprite = self.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
             tempSprite.append(sprite)
         self.sprites["death"] = tempSprite
-        
-    def machineInit(self,mac):
-        self.stateMachine = mac
 
     def gotHit(self,dmg,app):
         self.health -= dmg
