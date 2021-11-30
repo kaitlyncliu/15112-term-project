@@ -69,6 +69,7 @@ def initRooms(app):
     app.bossRoom.mobs = [Boss()]
     for mob in app.bossRoom.mobs:
         app.globalMobs.append(mob)
+        mob.machineInit(BossStateMachine(mob))
     
     # shopRoom 
     app.shopRoom = DungeonRoom("shopRoom")
@@ -339,9 +340,10 @@ def timerFired(app):
                     h += 1
         if app.curProjStrength < 20:
             app.curProjStrength += 1
-        if any(isinstance(x,Boss) for x in app.mobs):
-            bossStateMac.setState(app.mobs[0],app)
-            print(app.mobs[0].state)
+        for mob in app.mobs:
+            if isinstance(mob,Boss):
+                mob.stateMachine.run()
+                print(mob.stateMachine.curState)
 
 def convertToGrid(x,y):
     row = (y-80)//95
