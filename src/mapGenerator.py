@@ -172,6 +172,7 @@ class DungeonRoom(object):
     def __init__(self,name):
         self.name = name
         self.mobs = []
+        self.liveMobs = []
         self.background = None
         self.obsLocations = {}
         self.map = [[1,0,0,0,0,0,0,0,1],

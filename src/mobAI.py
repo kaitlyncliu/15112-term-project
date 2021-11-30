@@ -18,22 +18,39 @@ def inMapBounds(app,x,y):
     return False
 
 class Mob(object):
-    def __init__(self,name,health):
-        self.name = name
+    def __init__(self,health,x,y):
         self.initHealth = health
         self.health = health
         self.spriteCounter = 0
         self.totalSprites = 8
-        row = random.randint(0,3)
-        col = random.randint(0,8)
 
-        self.cx = random.randint(100,850)
-        self.cy = random.randint(200,400)
+        self.cx = x
+        self.cy = y
         self.initx = self.cx
         self.inity = self.cy
         self.type = "walk"
         self.proj = []
         self.minionList = []
+
+    # IMAGE CITATION: mob sprites from: https://analogstudios.itch.io/dungeonsprites
+    def imageInit(self,app):
+        self.sprite = app.loadImage(f'{self.name}_.png')
+        self.sprite = app.scaleImage(self.sprite,5)
+        self.spriteWidth, self.spriteHeight = self.sprite.size
+        self.sprites = dict()
+        for dir in ["idle0", "walk1", "run3", "jump4", "turn5", "hurt6", "death7"]:
+            index = int(dir[-1:])
+            newDir = dir[:-1]
+            topLeftY = index * self.spriteHeight / 7
+            botRightY = (index + 1) * self.spriteHeight / 7
+            tempSprites = []
+            for i in range(8):
+                topLeftX = self.spriteWidth * i / 8
+                botRightX = self.spriteWidth * (i+1) / 8
+                sprite = self.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+                tempSprites.append(sprite)
+            self.sprites[newDir] = tempSprites
+        self.width,self.height = self.sprites["idle"][0].size
 
     def gotHit(self,dmg,app):
         self.health -= dmg
@@ -99,10 +116,17 @@ class Mob(object):
         self.cy = self.inity
         self.health = self.initHealth
 
-
+class Dragon(Mob):
+    def __init__(self,x,y):
+        super().__init__(300,x,y)
+        self.name = "dragon"
 
 
 class Ghost(Mob):
+    def __init__(self,x,y):
+        super().__init__(200,x,y)
+        self.name = "ghost"
+
     def move(self,app,amt):
         self.type = "idle"
         dFromProj = []

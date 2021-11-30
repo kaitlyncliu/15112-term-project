@@ -17,15 +17,10 @@ from mobAI import *
 from bossAI import *
 
 ##############################################
-# Enemies
-dragon = Mob("dragon",500)
-ghost = Ghost("ghost",250)
-boss = Boss("boss",1000)
-
-###############################################
 
 def initRooms(app):
     app.roomsList = []
+    app.globalMobs = []
     # spawnRoom
     app.spawnRoom = DungeonRoom("spawnRoom")
     app.spawnRoom.obsLocations[(0,0)] = app.rockImage
@@ -41,30 +36,39 @@ def initRooms(app):
     room1.obsLocations[(3,2)] = app.rockImage
     room1.obsLocations[(4,2)] = app.rockImage
     room1.obsLocations[(5,2)] = app.rockImage
-    room1.mobs = [dragon]
-    room1.map = [[0,0,0,0,0,0,0,0,0],
-                 [0,0,0,1,1,1,0,0,0],
-                 [0,0,0,1,1,1,0,0,0],
-                 [0,0,0,0,0,0,0,0,0],]
+    room1.mobs = [Ghost(425,375),Ghost(575,125)]
+    for mob in room1.mobs:
+        app.globalMobs.append(mob)
+    room1.map = [[0,0,0,0,0,0,0,1,0],
+                 [0,1,0,1,1,1,0,1,0],
+                 [0,1,0,1,1,1,0,1,0],
+                 [0,1,0,0,0,0,0,0,0],]
     app.roomsList.append(room1)
 
     room2 = DungeonRoom("room2")
-    room2.mobs = [dragon]
+    room2.mobs = [Dragon(500,200),Dragon(500,300),Ghost(500,250)]
+    for mob in room2.mobs:
+        app.globalMobs.append(mob)
     room2Obs = [((1,1),app.rockImage),((0,2),app.rockImage),((3,1),app.rockImage),((3,2),app.rockImage),((7,0),app.rockImage)]
     room2.obsLocations = dict(room2Obs)
-    room2.map = [[0,0,0,0,0,0,0,1,0],
-                 [0,1,0,1,0,0,0,0,0],
-                 [1,0,0,1,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0],]
+    room2.map = [[0,1,0,1,0,0,0,1,0],
+                 [0,0,0,1,0,1,0,0,0],
+                 [0,0,0,1,0,1,0,0,0],
+                 [0,1,0,0,0,1,0,1,0],]
     app.roomsList.append(room2)
 
     # treasureRoom
     app.treasureRoom = DungeonRoom("treasureRoom")
     app.treasureRoom.obsLocations[(4,1)] = app.closedChest
+    app.treasureRoom.mobs = [Dragon(425,250),Dragon(575,250)]
+    for mob in app.treasureRoom.mobs:
+        app.globalMobs.append(mob)
 
     # bossRoom
     app.bossRoom = DungeonRoom("bossRoom")
-    app.bossRoom.mobs = [boss]
+    app.bossRoom.mobs = [Boss()]
+    for mob in app.bossRoom.mobs:
+        app.globalMobs.append(mob)
     
     # shopRoom 
     app.shopRoom = DungeonRoom("shopRoom")
@@ -138,12 +142,8 @@ def appStarted(app):
 
     # mobs
     app.mobs = app.roomType.mobs
-    app.mobsList = [ghost,dragon,boss]
-    for mob in app.mobsList:
-        if isinstance(mob,Boss):
-            bossImageInit(mob,app)
-        else:
-            mobImageInit(mob,app)
+    for mob in app.globalMobs:
+        mob.imageInit(app)
 
 
 
@@ -196,76 +196,7 @@ def initImages(app):
             sprite = app.charSprite.crop((topLeftX,topLeftY,botRightX,botRightY))
             tempSprites.append(sprite)
         app.sprites[newDir] = tempSprites
-    app.charWidth, app.charHeight = app.sprites["left"][0].size
-
-
-# IMAGE CITATION: mob sprites from: https://analogstudios.itch.io/dungeonsprites
-def mobImageInit(mob,app):
-    mob.sprite = app.loadImage(f'{mob.name}_.png')
-    mob.sprite = app.scaleImage(mob.sprite,5)
-    mob.spriteWidth, mob.spriteHeight = mob.sprite.size
-    mob.sprites = dict()
-    for dir in ["idle0", "walk1", "run3", "jump4", "turn5", "hurt6", "death7"]:
-        index = int(dir[-1:])
-        newDir = dir[:-1]
-        topLeftY = index * mob.spriteHeight / 7
-        botRightY = (index + 1) * mob.spriteHeight / 7
-        tempSprites = []
-        for i in range(8):
-            topLeftX = mob.spriteWidth * i / 8
-            botRightX = mob.spriteWidth * (i+1) / 8
-            sprite = mob.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-            tempSprites.append(sprite)
-        mob.sprites[newDir] = tempSprites
-    mob.width,mob.height = mob.sprites["idle"][0].size
-
-# IMAGE CITATION: https://darkpixel-kronovi.itch.io/undead-executioner
-def bossImageInit(boss,app):
-    boss.sprites = dict()
-    states = ["attack","skill"]
-    for i in range(len(states)):
-        boss.sprite = app.loadImage(f'{states[i]}.png')
-        boss.sprite = app.scaleImage(boss.sprite,4)
-        boss.spriteWidth, boss.spriteHeight = boss.sprite.size
-        tempSprites = []
-        for j in range(2):
-            for k in range(6):
-                topLeftX = boss.spriteWidth*k/6
-                botRightX = boss.spriteWidth*(k+1)/6
-                topLeftY = boss.spriteHeight*j/2
-                botRightY = boss.spriteHeight*(j+1)/2
-                sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-                tempSprites.append(sprite)
-        boss.sprites[states[i]] = tempSprites
-    boss.width,boss.height = boss.sprites["attack"][0].size
-    states2 = ["idle", "enraged"]
-    for i in range(len(states2)):
-        boss.sprite = app.loadImage(f'{states2[i]}.png')
-        boss.sprite = app.scaleImage(boss.sprite,4)
-        boss.spriteWidth, boss.spriteHeight = boss.sprite.size
-        tempSprite = []
-        for row in range(2):
-            for col in range(4):
-                topLeftX = boss.spriteWidth*col/4
-                botRightX = boss.spriteWidth*(col+1)/4
-                topLeftY = boss.spriteHeight*row/2
-                botRightY = boss.spriteHeight*(row+1)/2
-                sprite = boss.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-                tempSprite.append(sprite)
-        boss.sprites[states2[i]] = tempSprite
-    boss.minion = Mob("minion", 50)
-    boss.minion.sprite = app.loadImage("minion.png")
-    boss.minion.sprite = app.scaleImage(boss.minion.sprite,3)
-    boss.minion.spriteWidth, boss.minion.spriteHeight = boss.minion.sprite.size
-    boss.minion.sprites = []
-    for row in range(2):
-        for col in range(3):
-            topLeftX = boss.minion.spriteWidth*col/4
-            botRightX = boss.minion.spriteWidth*(col+1)/4
-            topLeftY = boss.minion.spriteHeight*row/2
-            botRightY = boss.minion.spriteHeight*(row+1)/2
-            sprite = boss.minion.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-            boss.minion.sprites.append(sprite)
+    app.charWidth, app.charHeight = app.sprites["left"][0].size 
 
 # pixels where floor starts: x: 14*5, y: 16*5
 
@@ -312,10 +243,10 @@ def redrawAll(app,canvas):
         canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
         for proj in mob.proj:
             canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
-        '''if isinstance(mob,Boss):
+        if isinstance(mob,Boss):
             for minion in mob.minion:
-                minionSprite = boss.minion.sprites[minion.spriteCounter]
-                canvas.create_image(minion.cx,minion.cy,image = ImageTk.PhotoImage(minionSprite))'''
+                minionSprite = minion.sprites[minion.spriteCounter]
+                canvas.create_image(minion.cx,minion.cy,image = ImageTk.PhotoImage(minionSprite))
     for i in range(app.charHP):
         x0 = 20 + i*(app.lifeWidth + 10)
         y0 = 20
@@ -408,9 +339,9 @@ def timerFired(app):
                     h += 1
         if app.curProjStrength < 20:
             app.curProjStrength += 1
-        if boss in app.mobs:
-            bossStateMac.setState(boss,app)
-            print(boss.state)
+        if any(isinstance(x,Boss) for x in app.mobs):
+            bossStateMac.setState(app.mobs[0],app)
+            print(app.mobs[0].state)
 
 def convertToGrid(x,y):
     row = (y-80)//95
@@ -530,7 +461,7 @@ def mouseReleased(app,event):
     difX = event.x - newProj.cx
     difY = event.y - newProj.cy
     newProj.angle = math.atan2(difY,difX)
-    newProj.vx = 8*newProj.strength*math.cos(newProj.angle)
+    newProj.vx = 12*newProj.strength*math.cos(newProj.angle)
     newProj.vy = 8*newProj.strength*math.sin(newProj.angle)
 
 runApp(width = 1000, height = 500)
