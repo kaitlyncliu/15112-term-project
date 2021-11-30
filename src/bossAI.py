@@ -19,10 +19,13 @@ class GotHit(State):
         b.totalSprites = 8
         b.type = "idle"
         print(b.health)
-        if b.health<.75*b.initHealth:
-            b.stage = 2
-        elif b.health < .5*b.initHealth:
+        if b.health < .5*b.initHealth:
             b.stage = 3
+            b.dis = 200
+            print("im")
+            self.stateMachine.boss.imageInit(app)
+        elif b.health<.75*b.initHealth:
+            b.stage = 2
         if b.health <= 0:
             self.stateMachine.curState = Death(self.stateMachine)
             self.stateMachine.changeState = True
@@ -36,11 +39,11 @@ class Move(State):
         b.totalSprites = 8
         b.type = "idle"
         b.move(app,10)
-        if distance(app.charX,app.charY,b.cx,b.cy) <= 50:
+        if distance(app.charX,app.charY,b.cx,b.cy) <= b.dis:
             self.stateMachine.curState = Enraged(self.stateMachine)
             self.stateMachine.changeState = True
         if self.timer > 16 and b.stage > 1:
-            self.stateMachine.curState = SpawnMinion(self.stateMachine)
+            self.stateMachine.curState = SpawnPrep(self.stateMachine)
             self.stateMachine.changeState = True
         self.timer += 1
         print(self.timer)
@@ -50,7 +53,7 @@ class Attack(State):
         b = self.stateMachine.boss
         b.totalSprites = 12
         b.type = "attack"
-        if distance(app.charX,app.charY,b.cx,b.cy) <= 50 and self.timer == 11:
+        if distance(app.charX,app.charY,b.cx,b.cy) <= b.dis and self.timer == 11:
             app.charHP -= 1
         if self.timer > 12:
             self.stateMachine.curState = Move(self.stateMachine)
@@ -74,11 +77,20 @@ class Skill(State):
         b = self.stateMachine.boss
         b.totalSprites = 12
         b.type = "skill"
-        if distance(app.charX,app.charY,b.cx,b.cy) <= 50 and self.timer == 11:
+        if distance(app.charX,app.charY,b.cx,b.cy) <= (b.dis + 20) and self.timer == 11:
             app.charHP -= 1
         if self.timer > 12:
             self.stateMachine.curState = Move(self.stateMachine)
             self.stateMachine.changeState = True
+        self.timer += 1
+
+class SpawnPrep(State):
+    def run(self,app):
+        self.stateMachine.boss.totalSprites = 8
+        self.stateMachine.boss.type = "spawnPrep"
+        if self.timer > 5:
+            self.stateMachine.curState = SpawnMinion(self.stateMachine)
+            self.changeState = True
         self.timer += 1
 
 class SpawnMinion(State): 
@@ -90,7 +102,6 @@ class SpawnMinion(State):
                 minion = Minion(self.stateMachine.boss.stage)
                 minion.imageInit(app)
                 self.stateMachine.boss.minionList.append(minion)
-                app.mobs.append(minion)
         self.timer += 1
         self.stateMachine.curState = Move(self.stateMachine)
         self.stateMachine.changeState = True
@@ -108,15 +119,15 @@ class Death(State):
 
 class Minion(Mob):
     def __init__(self,stage):
-        super().__init__(stage*100,random.randint(300,700),random.randint(200,300))
+        super().__init__(stage*50,random.randint(300,700),random.randint(200,300))
         self.totalSprites = 4
 
     def imageInit(self,app):
         self.sprite = app.loadImage("minion.png")
         self.sprite = app.scaleImage(self.sprite,5)
         self.spriteWidth, self.spriteHeight = self.sprite.size
-        self.sprites = {}
-        self.sprite = []
+        self.sprites = dict()
+        tempSprite = []
         for row in range(2):
             for col in range(3):
                 topLeftX = self.spriteWidth*col/4
@@ -124,8 +135,9 @@ class Minion(Mob):
                 topLeftY = self.spriteHeight*row/2
                 botRightY = self.spriteHeight*(row+1)/2
                 sprite = self.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-                self.sprite.append(sprite)
-        self.sprites["idle"] = self.sprite
+                tempSprite.append(sprite)
+        self.sprites["walk"] = tempSprite
+        self.width,self.height = self.sprites["walk"][0].size
 
 
 class BossStateMachine(object):
@@ -145,7 +157,7 @@ class BossStateMachine(object):
 class Boss(Mob):
     def __init__(self):
         self.name = "boss"
-        self.initHealth = 500
+        self.initHealth = 1000
         self.health = 1000
         self.spriteCounter = 0
         self.totalSprites = 8
@@ -160,6 +172,7 @@ class Boss(Mob):
         self.next = "idle"
         self.minionList = []
         self.stage = 1
+        self.dis = 125
         self.stateMachine = BossStateMachine(self)
 
     # IMAGE CITATION: https://darkpixel-kronovi.itch.io/undead-executioner
@@ -184,7 +197,7 @@ class Boss(Mob):
                     tempSprites.append(sprite)
             self.sprites[states[i]] = tempSprites
         self.width,self.height = self.sprites["attack"][0].size
-        states2 = ["idle", "enraged"]
+        states2 = ["idle", "enraged","spawnPrep"]
         for i in range(len(states2)):
             self.sprite = app.loadImage(f'{states2[i]}.png')
             if self.stage == 3:

@@ -249,8 +249,11 @@ def redrawAll(app,canvas):
             canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
         if isinstance(mob,Boss):
             for minion in mob.minionList:
-                minionSprite = minion.sprites[minion.spriteCounter]
+                minionSprite = minion.sprites["walk"][minion.spriteCounter]
                 canvas.create_image(minion.cx,minion.cy,image = ImageTk.PhotoImage(minionSprite))
+            canvas.create_rectangle(app.width-300,25,app.width-50,50,fill ="white")
+            canvas.create_rectangle(app.width-295,30,app.width-295+240*(mob.health/mob.initHealth),45,fill = "OrangeRed3")
+            canvas.create_text(app.width-290,38,anchor = W,text = f"Reaper HP:{mob.health}/{mob.initHealth}", fill = "black",font = "Helvetica 8")
     for i in range(app.charHP):
         x0 = 20 + i*(app.lifeWidth + 10)
         y0 = 20
@@ -268,8 +271,8 @@ def redrawAll(app,canvas):
     if app.win == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
 
-    '''if app.lose == True:
-        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))'''
+    if app.lose == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))
     
     if app.start == 0:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.startImage))
@@ -325,6 +328,38 @@ def timerFired(app):
                             app.paused = True
                     else:
                         k += 1
+            else:
+                for minion in mob.minionList:
+                    minion.move(app,5)
+                    # slows down mob atks
+                    if app.count % 20 == 0:
+                        minion.atk(app,10)
+                        # the mob is attacking the player - melee
+                        if ((minion.cx) >= (app.charX - app.charWidth/2) and
+                            (minion.cx) <= (app.charX + app.charWidth/2) and
+                            (minion.cy) >= (app.charY - app.charHeight/2) and
+                            (minion.cy) >= (app.charY + app.charHeight/2)):
+                            app.charHP -= 1
+                            if app.charHP <= 0:
+                                app.lose = True
+                                app.paused = True
+                    j = 0
+                    while j < len(app.charProj):
+                        proj = app.charProj[j]
+                        if ((proj.cx + app.poopRad) >= (minion.cx - minion.width/2) and 
+                            (proj.cx + app.poopRad) <= (minion.cx + minion.width/2) and
+                            (proj.cy + app.poopRad) >= (minion.cy - minion.height/2) and
+                            (proj.cy + app.poopRad) <= (minion.cy + minion.height/2)):
+                            minion.gotHit(proj.strength*25,app)
+                            app.charProj.pop(j)
+                        else:
+                            j += 1
+                h = 0
+                while h < len(mob.minionList):
+                    if mob.minionList[h].health <= 0:
+                        mob.minionList.pop(h)
+                    else:
+                        h += 1
             j = 0
             while j < len(app.charProj):
                 proj = app.charProj[j]
@@ -336,12 +371,12 @@ def timerFired(app):
                     app.charProj.pop(j)
                 else:
                     j += 1
-            h = 0
-            while h < len(app.mobs):
-                if app.mobs[h].type == "death":
-                    app.mobs.pop(h)
-                else:
-                    h += 1
+        h = 0
+        while h < len(app.mobs):
+            if app.mobs[h].type == "death":
+                app.mobs.pop(h)
+            else:
+                h += 1
         if app.curProjStrength < 20:
             app.curProjStrength += 1
         for mob in app.mobs:
@@ -410,6 +445,7 @@ def moveChar(app,amount):
         else:
             return
         if app.changeRoom == True:
+            app.changeRoom = False
             app.newRoom = 5
             app.isMoving = False
             app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
