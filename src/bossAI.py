@@ -23,7 +23,6 @@ class GotHitR(State):
         if b.health < .5*b.initHealth:
             b.stage = 3
             b.dis = 200
-            print("im")
             self.stateMachine.boss.imageInit(app)
         elif b.health<.75*b.initHealth:
             b.stage = 2
@@ -303,8 +302,8 @@ class Boss(Mob):
 class Reaper(Boss):
     def __init__(self):
         self.name = "Reaper"
-        self.initHealth = 1000
-        self.health = 1000
+        self.initHealth = 2000
+        self.health = 2000
         self.spriteCounter = 0
         self.totalSprites = 8
         self.initx = 300
@@ -387,8 +386,8 @@ class Reaper(Boss):
 class Golem(Boss):
     def __init__(self):
         self.name = "Golem"
-        self.initHealth = 1000
-        self.health = 1000
+        self.initHealth = 2000
+        self.health = 2000
         self.spriteCounter = 0
         self.totalSprites = 8
         self.initx = 300

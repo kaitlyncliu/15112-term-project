@@ -85,7 +85,6 @@ class Mob(object):
                 self.cy = newY
         else:
             path = aStar(app.roomType.map,(charLoc),(selfLoc))
-            print(path,selfLoc,charLoc)
             if path != None and len(path) > 0:
                 nextRow = path[1][0]
                 nextCol = path[1][1]
