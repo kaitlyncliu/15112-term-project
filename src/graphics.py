@@ -15,6 +15,7 @@ from cmu_112_graphics import *
 from mapGenerator import *
 from mobAI import *
 from bossAI import *
+from items import *
 
 ##############################################
 
@@ -117,6 +118,8 @@ def appStarted(app):
     app.lose = False
     app.start = 0
     app.changeRoom = False
+    app.help = False
+    app.secretFound = None
 
     # fill normal rooms with different room templates
     app.curRoom = (3,3)
@@ -128,6 +131,8 @@ def appStarted(app):
     fillRooms(app)
     print(app.map)
     app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+    app.items = app.roomType.items
+    app.bombs = []
 
     # character variables
     app.charX = app.width//2
@@ -143,11 +148,14 @@ def appStarted(app):
     app.charProj = []
     initImages(app)
     app.charHP = 5
+    app.charBombs = 1
 
     # mobs
     app.mobs = app.roomType.mobs
     for mob in app.globalMobs:
         mob.imageInit(app)
+
+
 
 
 
@@ -163,8 +171,9 @@ def appStarted(app):
 # start screen: text created by me, but background from here: https://lil-cthulhu.itch.io/pixel-art-mushroom-cave-background
 # pause screen: same as start screen
 # loading screen: same as start screen
+# bomb: https://www.vectorstock.com/royalty-free-vector/black-bomb-pixel-art-colorful-vector-21005227
 def initImages(app):
-    # background --
+    # backgrounds and screens --
     app.winImage = app.loadImage("youWin.jpg")
     app.winImage = app.scaleImage(app.winImage,2)
     app.loseImage = app.loadImage("youLose.jpg")
@@ -172,9 +181,11 @@ def initImages(app):
     app.startImage = app.loadImage("startScreen.png")
     app.pauseImage = app.loadImage("pauseImage.png")
     app.loadingImage = app.loadImage("loadingImage.png")
+    app.helpImage = app.loadImage("helpMenu.png")
     app.bgImage = app.loadImage('stoneBG.png')
     app.bgImage = app.bgImage.resize((app.width,app.height))
     app.bgWidth,app.bgHeight = app.bgImage.size
+
     # character projectiles --
     app.poopImage = app.loadImage('poop.png')
     app.poopImage = app.scaleImage(app.poopImage,.5)
@@ -233,6 +244,10 @@ def redrawAll(app,canvas):
             elif dir == (0,1):
                 canvas.create_rectangle(app.width-75,app.height/2-30,app.width,app.height/2+30, fill = "black")
     
+    # items
+    for bomb in app.bombs:
+        canvas.create_image(bomb.cx,bomb.cy,image = ImageTk.PhotoImage(bomb.image))
+
     # --character
     spriteImage = app.sprites[app.direction][app.charSpriteCounter]
     if app.charHP > 0:
@@ -261,27 +276,32 @@ def redrawAll(app,canvas):
         y1 = app.lifeHeight
         canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
     
-    # screen for room switch
+    # screens
     if app.newRoom > 0:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loadingImage))
-
     if app.paused == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.pauseImage))
-
     if app.win == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.winImage))
-
     if app.lose == True:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.loseImage))
-    
     if app.start == 0:
         canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.startImage))
+    if app.help == True:
+        canvas.create_image(app.curRoomCX,app.curRoomCY,image = ImageTk.PhotoImage(app.helpImage))
     
 
 
 def timerFired(app):
     if app.paused == False:
         app.count += 1
+        m = 0
+        while m < len(app.bombs):
+            bomb = app.bombs[m]
+            bomb.timer += 1
+            if bomb.timer >= 10:
+                bomb.explode(app)
+                app.bombs.pop(m)
         if app.newRoom > 0:
             app.newRoom -= 1
         if app.isMoving:
@@ -329,6 +349,7 @@ def timerFired(app):
                     else:
                         k += 1
             else:
+                # similar for boss minions
                 for minion in mob.minionList:
                     minion.move(app,5)
                     # slows down mob atks
@@ -482,12 +503,25 @@ def keyReleased(app,event):
         app.movingDown = False
     elif event.key == "r":
         app.charHP = 5
+    elif event.key == "e" and app.charBombs > 0:
+        app.charBombs -= 1
+        newBomb = Bomb()
+        newBomb.cx = app.charX
+        newBomb.cy = app.charY
+        app.bombs.append(newBomb)
+        newBomb.initImages(app)
+        newBomb.placed(app)
     elif event.key == "p":
         app.paused = not app.paused
         app.start += 1
     elif event.key == "q":
-        app.start = 0
-        app.paused = True
+        if app.help == True:
+            app.help = False
+        else:
+            app.start = 0
+            app.paused = True
+    elif app.paused and event.key == "o":
+        app.help = True
     elif event.key == "0":
         bossLoc = None
         for i in range(7):

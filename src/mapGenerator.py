@@ -180,6 +180,7 @@ class DungeonRoom(object):
         self.liveMobs = []
         self.background = None
         self.obsLocations = {}
+        self.items = dict()
         self.map = [[1,0,0,0,0,0,0,0,1],
                     [0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0],

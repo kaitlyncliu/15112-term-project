@@ -59,7 +59,6 @@ class Attack(State):
             self.stateMachine.curState = Move(self.stateMachine)
             self.stateMachine.changeState = True
         self.timer += 1
-        
 
 class Enraged(State): 
     def run(self,app):
@@ -70,7 +69,6 @@ class Enraged(State):
             self.stateMachine.curState = nextMoves[random.randint(0,1)]
             self.stateMachine.changeState = True
         self.timer += 1
-
 
 class Skill(State): 
     def run(self,app):
