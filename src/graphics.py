@@ -95,7 +95,7 @@ def fillRooms(app):
         for col in range(cols):
             if app.map[row][col] == 1:
                 randomRoom = random.randint(0,len(app.roomsList)-1)
-                app.map[row][col] = app.roomsList[randomRoom]
+                app.map[row][col] = copy.deepcopy(app.roomsList[randomRoom])
             elif app.map[row][col] == "bossRoom":
                 app.map[row][col] = app.bossRoom
             elif app.map[row][col] == "shopRoom":
@@ -256,18 +256,14 @@ def redrawAll(app,canvas):
         canvas.create_image(bomb.cx,bomb.cy,image = ImageTk.PhotoImage(bomb.image))
     if app.holeLoc != None and app.secretFound == app.curRoom:
         if app.holeLoc == "top":
-            print("top")
             canvas.create_image(app.width/2,30,image = ImageTk.PhotoImage(app.holeImage))
         elif app.holeLoc == "bottom":
-            print("bot")
             image = app.holeImage.transpose(Image.ROTATE_180)
             canvas.create_image(app.width/2,470,image = ImageTk.PhotoImage(image))
         elif app.holeLoc == "left":
-            print("left")
             image = app.holeImage.transpose(Image.ROTATE_90)
             canvas.create_image(30,app.height/2,image = ImageTk.PhotoImage(image))
         elif app.holeLoc == "right":
-            print("right")
             image = app.holeImage.transpose(Image.ROTATE_270)
             canvas.create_image(970,app.height/2,image = ImageTk.PhotoImage(image))
 
@@ -317,7 +313,6 @@ def redrawAll(app,canvas):
 
 def timerFired(app):
     if app.paused == False:
-        print(app.charX,app.charY)
         app.count += 1
         m = 0
         while m < len(app.bombs):
@@ -437,7 +432,7 @@ def convertToGrid(x,y):
 def moveChar(app,amount):
     leftWall = 75
     rightWall = app.width - 75
-    topWall = 70
+    topWall = 80
     botWall = app.height - 50
     # accounts for diagonal motion needing to move less
     if ((app.movingRight or app.movingLeft) and (app.movingUp or app.movingDown)):
@@ -459,8 +454,11 @@ def moveChar(app,amount):
             if app.charY > app.height/2-30 and app.charY < app.height/2+30:
                 newCol =  app.curRoom[1] + 1
                 newRow = app.curRoom[0]
-                newRoom = app.map[newRow][newCol]
-                if inBounds(app.map,newRow,newCol) and newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
+                if inBounds(app.map,newRow,newCol):
+                    newRoom = app.map[newRow][newCol]
+                else:
+                    return
+                if newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
                     app.charX = 85
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True
@@ -472,8 +470,11 @@ def moveChar(app,amount):
             if app.charY > app.height/2-30 and app.charY < app.height/2+30:
                 newCol =  app.curRoom[1] - 1
                 newRow = app.curRoom[0]
-                newRoom = app.map[newRow][newCol]
-                if inBounds(app.map,newRow,newCol) and newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
+                if inBounds(app.map,newRow,newCol):
+                    newRoom = app.map[newRow][newCol]
+                else:
+                    return
+                if newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
                     app.charX = app.width - 80
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True
@@ -482,11 +483,15 @@ def moveChar(app,amount):
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True 
         elif newY < topWall:
+            print("up")
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
                 newRow = app.curRoom[0] - 1
-                newRoom = app.map[newRow][newCol]
-                if inBounds(app.map,newRow,newCol) and newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
+                if inBounds(app.map,newRow,newCol):
+                    newRoom = app.map[newRow][newCol]
+                else:
+                    return
+                if newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
                     app.charY = app.height - 60
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True
@@ -498,8 +503,11 @@ def moveChar(app,amount):
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
                 newRow = app.curRoom[0] + 1
-                newRoom = app.map[newRow][newCol]
-                if inBounds(app.map,newRow,newCol) and newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
+                if inBounds(app.map,newRow,newCol):
+                    newRoom = app.map[newRow][newCol]
+                else:
+                    return
+                if newRoom != 0 and newRoom != "secretRoom" and newRoom != "superSecretRoom":
                     app.charY = 85
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True
@@ -516,6 +524,7 @@ def moveChar(app,amount):
             app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
             app.mobs = app.roomType.mobs
             for mob in app.mobs:
+                mob.imageInit(app)
                 mob.respawn(app)
             print(app.curRoom)
 
@@ -549,9 +558,7 @@ def keyReleased(app,event):
         app.charHP = 5
     elif event.key == "e" and app.charBombs > 0:
         app.charBombs -= 1
-        newBomb = Bomb()
-        newBomb.cx = app.charX
-        newBomb.cy = app.charY
+        newBomb = Bomb(app.charX,app.charY)
         app.bombs.append(newBomb)
         newBomb.initImages(app)
         newBomb.placed(app)

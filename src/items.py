@@ -1,7 +1,7 @@
 import random
 
 class Item(object):
-    def __init__(self):
+    def __init__(self,x,y):
         self.image = None
         self.cx = 0
         self.cy = 0
@@ -85,12 +85,3 @@ class Heart(Item):
 # Every time you kill an enemy (not a minion) you gain a heart
 class Bat(Item):
     pass
-
-def bombPlaced(app):
-    # top door
-    # bottom door
-    # left door
-    # right door
-    pass
-
-# Bomb
