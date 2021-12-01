@@ -72,7 +72,8 @@ def initRooms(app):
 
     # bossRoom
     app.bossRoom = DungeonRoom("bossRoom")
-    app.bossRoom.mobs = [Golem()]
+    bosses = [Golem(),Reaper()]
+    app.bossRoom.mobs = [bosses[random.randint(0,1)]]
     for mob in app.bossRoom.mobs:
         app.globalMobs.append(mob)
     
@@ -306,7 +307,7 @@ def redrawAll(app,canvas):
                 canvas.create_image(minion.cx,minion.cy,image = ImageTk.PhotoImage(minionSprite))
             canvas.create_rectangle(app.width-300,25,app.width-50,50,fill ="white")
             canvas.create_rectangle(app.width-295,30,app.width-295+240*(mob.health/mob.initHealth),45,fill = "OrangeRed3")
-            canvas.create_text(app.width-290,38,anchor = W,text = f"Reaper HP:{mob.health}/{mob.initHealth}", fill = "black",font = "Helvetica 8")
+            canvas.create_text(app.width-290,38,anchor = W,text = f"Boss HP:{mob.health}/{mob.initHealth}", fill = "black",font = "Helvetica 8")
     
     # screens
     if app.newRoom > 0:
@@ -611,9 +612,27 @@ def keyReleased(app,event):
         app.newRoom = 5
         app.isMoving = False
         app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
-        app.mobs = app.roomType.mobs
+        app.mobs = [Reaper()]
         for mob in app.mobs:
             mob.respawn(app)
+            mob.imageInit(app)
+        print(app.curRoom)
+        app.charX = 500
+        app.charY = 350
+    elif event.key == "9":
+        bossLoc = None
+        for i in range(7):
+            for j in range(7):
+                if app.map[i][j] == "bossRoom":
+                    bossLoc = (i,j)
+        app.curRoom = bossLoc
+        app.newRoom = 5
+        app.isMoving = False
+        app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
+        app.mobs = [Golem()]
+        for mob in app.mobs:
+            mob.respawn(app)
+            mob.imageInit(app)
         print(app.curRoom)
         app.charX = 500
         app.charY = 350
