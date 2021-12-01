@@ -72,7 +72,7 @@ def initRooms(app):
 
     # bossRoom
     app.bossRoom = DungeonRoom("bossRoom")
-    app.bossRoom.mobs = [Reaper(),Golem()]
+    app.bossRoom.mobs = [Golem()]
     for mob in app.bossRoom.mobs:
         app.globalMobs.append(mob)
     
@@ -293,7 +293,13 @@ def redrawAll(app,canvas):
         mobSprite = mob.sprites[mob.type][mob.spriteCounter]
         canvas.create_image(mob.cx, mob.cy, image = ImageTk.PhotoImage(mobSprite))
         for proj in mob.proj:
-            canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
+            if isinstance(mob,Ghost):
+                canvas.create_oval(proj.cx-6,proj.cy-6,proj.cx+6,proj.cy+6, fill = "white")
+            else:
+                image = proj.image
+                if proj.reflect == True:
+                    image = image.transpose(Image.FLIP_LEFT_RIGHT)
+                canvas.create_image(proj.cx,proj.cy,image = ImageTk.PhotoImage(image))
         if isinstance(mob,Boss):
             for minion in mob.minionList:
                 minionSprite = minion.sprites["walk"][minion.spriteCounter]
@@ -336,6 +342,7 @@ def timerFired(app):
         i = 0
         while i < len(app.charProj):
             proj = app.charProj[i]
+            proj.spriteCounter = int((proj.spriteCounter + 1) % 6)
             proj.time += 1
             proj.move(app)
             if proj.cx < 50 or proj.cx > app.width-50 or proj.cy < 50 or proj.cy > app.height-50:
@@ -358,22 +365,26 @@ def timerFired(app):
                         if app.charHP <= 0:
                             app.lose = True
                             app.paused = True
-                k = 0
-                while k < len(mob.proj):
-                    proj = mob.proj[k]
-                    proj.move()
-                    # the projectiles hit the character
-                    if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
-                        (proj.cx + 5) <= (app.charX + app.charWidth/2) and
-                        (proj.cy + 5) >= (app.charY - app.charHeight/2) and
-                        (proj.cy + 5) <= (app.charY + app.charHeight/2)):
-                        mob.proj.pop(k)
-                        app.charHP -= 1
-                        if app.charHP <= 0:
-                            app.lose = True
-                            app.paused = True
-                    else:
-                        k += 1
+            k = 0
+            while k < len(mob.proj):
+                proj = mob.proj[k]
+                oldX = proj.cx
+                oldY = proj.cy
+                proj.move()
+                if oldX > proj.cx:
+                    proj.reflect = True
+                # the projectiles hit the character
+                if ((proj.cx + 5) >= (app.charX - app.charWidth/2) and 
+                    (proj.cx + 5) <= (app.charX + app.charWidth/2) and
+                    (proj.cy + 5) >= (app.charY - app.charHeight/2) and
+                    (proj.cy + 5) <= (app.charY + app.charHeight/2)):
+                    mob.proj.pop(k)
+                    app.charHP -= 1
+                    if app.charHP <= 0:
+                        app.lose = True
+                        app.paused = True
+                else:
+                    k += 1
             else:
                 # similar for boss minions
                 for minion in mob.minionList:

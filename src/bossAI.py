@@ -148,7 +148,7 @@ class IdleG(State):
         b.totalSprites = 4
         b.type = "idle"
         b.move(app,10)
-        if self.timer > 16 and b.stage > 1:
+        if self.timer > 12:
             self.stateMachine.curState = EnragedG(self.stateMachine)
             self.stateMachine.changeState = True
         self.timer += 1
@@ -163,9 +163,9 @@ class EnragedG(State):
                 self.stateMachine.curState = MeleeG(self.stateMachine)
                 self.stateMachine.changeState = True
             else:
-                if b.stage < 2:
-                    self.stateMachine.curState = AttackG(self.stateMachine)
-                    self.stateMachine.changeState = True
+                #if b.stage < 2:
+                self.stateMachine.curState = AttackG(self.stateMachine)
+                self.stateMachine.changeState = True
                 '''else:
                     if random.randint(0,1) == 1:
                         self.stateMachine.curState = LaserG(self.stateMachine)
@@ -180,7 +180,7 @@ class MeleeG(State):
         b = self.stateMachine.boss
         b.type = "melee"
         self.stateMachine.boss.totalSprites = 7
-        if distance(app.charX,app.charY,b.cx,b.cy) <= b.dis and self.timer == 11:
+        if distance(app.charX,app.charY,b.cx+40,b.cy-40) <= b.dis and self.timer == 7:
             app.charHP -= 1 
         if self.timer > 7:
             self.stateMachine.curState = IdleG(self.stateMachine)
@@ -193,15 +193,18 @@ class AttackG(State):
         b = self.stateMachine.boss
         b.type = "atk"
         b.totalSprites = 9
-        difX = b.cx - charX
-        difY = b.cy - charY
-        angle = math.atan2(difY,difX)
-        b.proj.append(GolemArm(10,b.cx,b.cy))
-        b.proj[-1].angle = angle
+        if self.timer == 4:
+            difX = b.cx - charX
+            difY = b.cy - charY
+            angle = math.atan2(difY,difX)
+            projectile = GolemArm(10,b.cx + 40,b.cy - 40)
+            projectile.imageInit(app)
+            projectile.angle = angle
+            b.proj.append(projectile)
         if self.timer > 9:
             self.stateMachine.curState = IdleG(self.stateMachine)
             self.stateMachine.changeState = True
-        self.time += 1
+        self.timer += 1
 
 class DeathG(State):
     def run(self,app):
@@ -213,19 +216,28 @@ class DeathG(State):
         self.timer += 1
 
 class GolemArm(Projectile):
+    def __init__(self,strength,x,y):
+        super().__init__(strength,x,y)
+        self.rad = 20
+
+
     def imageInit(self,app):
-        self.image = app.load("arm.png")
-        imageWidth,imageHeight = self.image.size
-        self.image = self.image.crop((0,0,imageWidth,imageHeight*2/3))
+        '''self.image = app.loadImage("arm.png")
+        self.image = app.scaleImage(self.image,4)
+        self.width,self.height = self.image.size
+        self.image = self.image.crop((0,0,self.width,self.height*2/3))
         self.sprites = []
         for i in range(2):
             for j in range(3):
-                topLeftX = self.spriteWidth*j/3
-                botRightX = self.spriteWidth*(j+1)/3
-                topLeftY = self.spriteHeight*i/2
-                botRightY = self.spriteHeight*(i+1)/2
-                sprite = self.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
-                self.sprites.append(sprite)   
+                topLeftX = self.width*j/3
+                botRightX = self.width*(j+1)/3
+                topLeftY = self.height*i/2
+                botRightY = self.height*(i+1)/2
+                sprite = self.image.crop((topLeftX,topLeftY,botRightX,botRightY))
+                self.sprites.append(sprite)'''   
+        self.image = app.loadImage("singleArm.png")
+        self.image = app.scaleImage(self.image,4)
+        self.width,self.height = self.image.size
 
     def move(self):
         self.cx -= 35 * math.cos(self.angle)
@@ -271,7 +283,7 @@ class ReaperStateMachine(object):
 class GolemStateMachine(object):
     def __init__(self,boss):
         self.boss = boss
-        self.curState = SpawnG(self)
+        self.curState = IdleG(self)
         self.changeState = False
 
     def run(self,app):
@@ -398,6 +410,7 @@ class Golem(Boss):
             uncropped.append(uncrop)
         
         spriteWidth,spriteHeight = uncropped[0].size
+        self.width, self.height = uncropped[0].size
         for state in states:
             tempSprite = []
             num = int(state[-1])
@@ -418,7 +431,7 @@ class Golem(Boss):
             botRightY = spriteHeight
             new = uncropped[8].crop((topLeftX,topLeftY,botRightX,botRightY))
             self.sprites["death"].append(new)
-        self.sprites["spawn"] = self.sprites["death"][::-1]
+        #self.sprites["spawn"] = self.sprites["death"][::-1]
         
     def gotHit(self,dmg,app):
         self.health -= dmg

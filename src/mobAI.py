@@ -160,6 +160,7 @@ class Projectile(object):
     def __init__(self,strength,x,y):
         self.time = 0
         self.strength = strength
+        self.spriteCounter = 0
         self.initY = y
         self.initX = x
         self.cx = x
@@ -168,6 +169,7 @@ class Projectile(object):
         self.vy = 0
         self.angle = 0
         self.image = None
+        self.reflect = False
     
     def move(self,app):
         self.cx = self.initX + self.vx*self.time
@@ -175,6 +177,10 @@ class Projectile(object):
         
     
 class GhostTear(Projectile):
+    def __init__(self,strength,x,y):
+        super().__init__(strength,x,y)
+        self.rad = 5
+
     def move(self):
         self.cx -= 25 * math.cos(self.angle)
         self.cy -= 25 * math.sin(self.angle)
