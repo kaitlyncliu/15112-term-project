@@ -2,9 +2,6 @@ import random
 import math
 from mapGenerator import *
 
-## mob ideas: chest mimic, the mobs in sprite pack downloaded
-# animals that eat frogs: ducks and lots of birds, snakes, final boss: frog mimic that can eat you up
-
 def distance(x0,y0,x1,y1):
     return math.sqrt((x0-x1)**2+(y0-y1)**2)
 
@@ -179,8 +176,8 @@ class Projectile(object):
     
 class GhostTear(Projectile):
     def move(self):
-        self.cx -= 30 * math.cos(self.angle)
-        self.cy -= 30 * math.sin(self.angle)
+        self.cx -= 25 * math.cos(self.angle)
+        self.cy -= 25 * math.sin(self.angle)
 
 #####################################################
 

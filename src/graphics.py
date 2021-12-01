@@ -72,7 +72,7 @@ def initRooms(app):
 
     # bossRoom
     app.bossRoom = DungeonRoom("bossRoom")
-    app.bossRoom.mobs = [Boss()]
+    app.bossRoom.mobs = [Reaper(),Golem()]
     for mob in app.bossRoom.mobs:
         app.globalMobs.append(mob)
     
