@@ -1,6 +1,6 @@
 '''
 
-Ribbert's Ribbeting Adventure
+Dungeon Diver
 by Kaitlyn Liu
 andrewID : kaitlynl
 
@@ -32,6 +32,7 @@ def initRooms(app):
                         [0,0,0,0,0,0,0,0,0],
                         [0,0,0,0,0,0,0,0,0],
                         [1,0,0,0,0,0,0,0,1],]
+    app.spawnRoom.items = [Dagger(475,275)]
     
     # regular mob room
     room1 = DungeonRoom("room1")
@@ -713,6 +714,8 @@ def keyReleased(app,event):
             mob.respawn(app)
             mob.imageInit(app)
         app.items = app.roomType.items
+        for item in app.items:
+            item.initImages(app)
         app.charX = 500
         app.charY = 350
     elif event.key == "Space":
