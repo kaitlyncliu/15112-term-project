@@ -460,7 +460,7 @@ def timerFired(app):
                     j += 1
         h = 0
         while h < len(app.mobs):
-            if app.mobs[h].type == "death":
+            if app.mobs[h].type == "death" and isinstance(app.mobs[h],Boss) == False:
                 app.mobs.pop(h)
             else:
                 h += 1
@@ -625,7 +625,7 @@ def keyReleased(app,event):
                         minion.gotHit(app.charStrength,app)
             h = 0
             while h < len(app.mobs):
-                if app.mobs[h].health <= 0:
+                if app.mobs[h].health <= 0 and isinstance(app.mobs[h],Boss) == False:
                     app.mobs.pop(h)
                 else:
                     h += 1
@@ -644,6 +644,15 @@ def keyReleased(app,event):
         else:
             app.start = 0
             app.paused = True
+            app.win = False
+            app.lose = False
+            app.charHP = 5
+            app.curRoom = (3,3)
+            app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+            app.items = app.roomType.items  
+            app.mobs = app.roomType.mobs
+            for mob in app.mobs:
+                mob.respawn(app)
     elif app.paused and event.key == "o":
         app.help = True
     # shortcuts

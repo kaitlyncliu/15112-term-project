@@ -111,6 +111,8 @@ class DeathR(State):
         if self.timer > 10:
             app.win = True
             app.paused = True
+        if self.timer > 11:
+            self.stateMachine.curState = MoveR(self.stateMachine)
         self.timer += 1
 
 # Golem States:
@@ -210,9 +212,11 @@ class DeathG(State):
     def run(self,app):
         self.stateMachine.boss.totalSprites = 14
         self.stateMachine.boss.type = "death"
-        if self.timer > 10:
+        if self.timer > 14:
             app.win = True
             app.paused = True
+        if self.timer > 15:
+            self.stateMachine.curState = IdleG(self.stateMachine)
         self.timer += 1
 
 class GolemArm(Projectile):
@@ -363,6 +367,13 @@ class Reaper(Boss):
             topLeftX = self.spriteWidth*i/10
             botRightX = self.spriteWidth*(i+1)/10
             topLeftY = 0
+            botRightY = self.spriteHeight/2
+            sprite = self.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
+            tempSprite.append(sprite)
+        for i in range(8):
+            topLeftX = self.spriteWidth*i/10
+            botRightX = self.spriteWidth*(i+1)/10
+            topLeftY = self.spriteHeight/2
             botRightY = self.spriteHeight
             sprite = self.sprite.crop((topLeftX,topLeftY,botRightX,botRightY))
             tempSprite.append(sprite)
@@ -437,3 +448,4 @@ class Golem(Boss):
         self.health -= dmg
         self.stateMachine.curState = DefendG(self.stateMachine)
         self.stateMachine.changeState = True
+    
