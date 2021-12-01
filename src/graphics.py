@@ -642,17 +642,7 @@ def keyReleased(app,event):
         if app.help == True:
             app.help = False
         else:
-            app.start = 0
-            app.paused = True
-            app.win = False
-            app.lose = False
-            app.charHP = 5
-            app.curRoom = (3,3)
-            app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
-            app.items = app.roomType.items  
-            app.mobs = app.roomType.mobs
-            for mob in app.mobs:
-                mob.respawn(app)
+            appStarted(app)
     elif app.paused and event.key == "o":
         app.help = True
     # shortcuts
@@ -715,7 +705,7 @@ def keyReleased(app,event):
                 app.roomType.obsLocations[key] = app.openChest
                 locKey = key
         if locKey != None:
-            num = random.randint(0,2)
+            num = random.randint(0,3)
             row,col = locKey
             x = row*95 + random.randint(-15,15)
             y = col*95 + random.randint(-15,15)
@@ -725,6 +715,8 @@ def keyReleased(app,event):
                 item = Milk(x,y)
             elif num == 2:
                 item = Dagger(x,y)
+            elif num == 3:
+                item = Heart(x,y)
             item.initImages(app)
             app.items.append(item)
     # None of the movement keys are being pressed

@@ -96,7 +96,14 @@ class Soda(Item):
 
 # heals health
 class Heart(Item):
-    pass
+    def initImages(self,app):
+        self.image = app.loadImage("Heart.png")
+        self.image = app.scaleImage(self.image,2.5)
+        self.timer = 0
+
+    def pickUp(self,app):
+        if app.charHP < 9:
+            app.charHP += 1
 
 # Every time you kill an enemy (not a minion) you gain a heart
 class Bat(Item):
