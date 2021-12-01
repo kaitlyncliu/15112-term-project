@@ -28,6 +28,7 @@ def initRooms(app):
     app.spawnRoom.obsLocations[(8,0)] = app.rockImage
     app.spawnRoom.obsLocations[(0,3)] = app.rockImage
     app.spawnRoom.obsLocations[(8,3)] = app.rockImage
+    app.spawnRoom.items = [Bomb(200,150)]
     
     # regular mob room
     room1 = DungeonRoom("room1")
@@ -160,6 +161,8 @@ def appStarted(app):
     app.mobs = app.roomType.mobs
     for mob in app.globalMobs:
         mob.imageInit(app)
+    for item in app.items:
+        item.initImages(app)
 
 
 
@@ -266,11 +269,21 @@ def redrawAll(app,canvas):
         elif app.holeLoc == "right":
             image = app.holeImage.transpose(Image.ROTATE_270)
             canvas.create_image(970,app.height/2,image = ImageTk.PhotoImage(image))
+    for item in app.items:
+        canvas.create_image(item.cx,item.cy,image = ImageTk.PhotoImage(item.image))
 
     # --character
     spriteImage = app.sprites[app.direction][app.charSpriteCounter]
     if app.charHP > 0:
         canvas.create_image(app.charX, app.charY, image = ImageTk.PhotoImage(spriteImage))
+    for i in range(app.charHP):
+        x0 = 20 + i*(app.lifeWidth + 10)
+        y0 = 20
+        x1 = 20 + (i+1)*(app.lifeWidth + 10)
+        y1 = app.lifeHeight
+        canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
+    # bombs:
+    canvas.create_text(40,70,anchor = W,text = f"Bombs: {app.charBombs}", fill = "white", font = "Helvetica 12")
     # draw projectiles the character has shot
     for proj in app.charProj:
         canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
@@ -288,12 +301,6 @@ def redrawAll(app,canvas):
             canvas.create_rectangle(app.width-300,25,app.width-50,50,fill ="white")
             canvas.create_rectangle(app.width-295,30,app.width-295+240*(mob.health/mob.initHealth),45,fill = "OrangeRed3")
             canvas.create_text(app.width-290,38,anchor = W,text = f"Reaper HP:{mob.health}/{mob.initHealth}", fill = "black",font = "Helvetica 8")
-    for i in range(app.charHP):
-        x0 = 20 + i*(app.lifeWidth + 10)
-        y0 = 20
-        x1 = 20 + (i+1)*(app.lifeWidth + 10)
-        y1 = app.lifeHeight
-        canvas.create_image((x0+x1)/2,(y0+y1)/2, image = ImageTk.PhotoImage(app.life))
     
     # screens
     if app.newRoom > 0:
@@ -423,6 +430,14 @@ def timerFired(app):
             if isinstance(mob,Boss):
                 mob.stateMachine.run(app)
                 print(mob.stateMachine.curState)
+        n = 0
+        while n < len(app.items):
+            item = app.items[n]
+            if distance(app.charX,app.charY,item.cx,item.cy) < 30:
+                app.items.pop(n)
+                item.pickUp(app)
+            else:
+                n += 1
 
 def convertToGrid(x,y):
     row = (y-80)//95
@@ -526,6 +541,8 @@ def moveChar(app,amount):
             for mob in app.mobs:
                 mob.imageInit(app)
                 mob.respawn(app)
+            for item in app.items:
+                item.initImages(app)
             print(app.curRoom)
 
 

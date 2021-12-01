@@ -3,12 +3,12 @@ import random
 class Item(object):
     def __init__(self,x,y):
         self.image = None
-        self.cx = 0
-        self.cy = 0
+        self.cx = x
+        self.cy = y
     
-    def used(self):
+    def pickUp(self,app):
         pass
-    
+
 def inBounds(map,row,col):
     if row < len(map) and row >= 0 and col < len(map[0]) and col >= 0:
         return True
@@ -23,9 +23,10 @@ class Bomb(Item):
         self.lit = app.scaleImage(self.lit,0.25)
         self.image = self.unlit
         self.timer = 0
-        self.cx = 0
-        self.cy = 0
-        
+
+    def pickUp(self,app):
+        app.charBombs += 1
+
     def explode(self,app):
         # top door
         if (self.cx > app.width/2 - 40) and (self.cx < app.width/2 + 40) and self.cy < 120:
