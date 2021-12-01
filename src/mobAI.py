@@ -91,7 +91,6 @@ class Mob(object):
                 nextCol = path[1][1]
                 tempX = self.cx
                 tempY = self.cy
-                print(nextRow,selfRow,nextCol,selfCol)
                 if nextRow < selfRow and inMapBounds(app,self.cx,self.cy-amt):
                     self.cy -= amt*2
                 elif nextRow > selfRow and inMapBounds(app,self.cx,self.cy+amt):

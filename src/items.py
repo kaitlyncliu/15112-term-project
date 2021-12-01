@@ -67,13 +67,28 @@ class Bomb(Item):
 class Egg(Item):
     pass
 
+# IMAGE CITATION: https://www.vectorstock.com/royalty-free-vector/image-pixel-milk-box-for-8-bit-game-assets-vector-38201649
 # bigger, stronger poops
 class Milk(Item):
-    pass
+    def initImages(self,app):
+        self.image = app.loadImage("milk.png")
+        self.image = app.scaleImage(self.image,0.4)
 
-# New attack mode - melee with left click
+    def pickUp(self,app):
+        app.charStrength = 40
+        app.poopImage = app.scaleImage(app.poopImage,2)
+        app.poopRad = app.poopImage.size[0]/2
+
+# IMAGE CITATION: https://xandrexdx.itch.io/pixel-sword-asset
+# New attack mode - melee with right click
 class Dagger(Item):
-    pass
+    def initImages(self,app):
+        self.image = app.loadImage("sword.png")
+        self.image = app.scaleImage(self.image,0.3)
+        self.timer = 0
+
+    def pickUp(self,app):
+        app.dagger = True
 
 # Makes character run faster
 class Soda(Item):

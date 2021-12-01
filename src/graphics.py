@@ -28,6 +28,7 @@ def initRooms(app):
     app.spawnRoom.obsLocations[(8,0)] = app.rockImage
     app.spawnRoom.obsLocations[(0,3)] = app.rockImage
     app.spawnRoom.obsLocations[(8,3)] = app.rockImage
+    app.spawnRoom.obsLocations[(4,1)] = app.closedChest
     app.spawnRoom.items = [Bomb(200,150)]
     
     # regular mob room
@@ -43,6 +44,7 @@ def initRooms(app):
     room1.obsLocations[(1,2)] = app.rockImage
     room1.obsLocations[(1,3)] = app.rockImage
     room1.mobs = [Ghost(425,375),Ghost(575,125)]
+    room1.items = [Bomb(110,400),Bomb(840,100)]
     for mob in room1.mobs:
         app.globalMobs.append(mob)
     room1.map = [[0,0,0,0,0,0,0,1,0],
@@ -67,6 +69,10 @@ def initRooms(app):
     app.treasureRoom = DungeonRoom("treasureRoom")
     app.treasureRoom.obsLocations[(4,1)] = app.closedChest
     app.treasureRoom.mobs = [Dragon(425,250),Dragon(575,250)]
+    app.treasureRoom.map = [[0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,1,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0],]
     for mob in app.treasureRoom.mobs:
         app.globalMobs.append(mob)
 
@@ -82,9 +88,22 @@ def initRooms(app):
 
     # secretRoom
     app.secretRoom = DungeonRoom("secretRoom")
+    app.secretRoomObs = [((4,1),app.closedChest)]
+    app.secretRoom.obsLocations = dict(room2Obs)
+    app.secretRoom.map = [[0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,1,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0],]
+
     
     # superSecretRoom
     app.superSecretRoom = DungeonRoom("superSecretRoom")
+    app.secretRoomObs = [((4,1),app.closedChest)]
+    app.secretRoom.obsLocations = dict(room2Obs)
+    app.superSecretRoom.map = [[0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,1,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0],]
 
 
 def fillRooms(app):
@@ -128,6 +147,8 @@ def appStarted(app):
     app.help = False
     app.secretFound = None
     app.holeLoc = None
+    app.dagger = True
+    app.daggerWield = False
 
     # fill normal rooms with different room templates
     app.curRoom = (3,3)
@@ -157,6 +178,7 @@ def appStarted(app):
     initImages(app)
     app.charHP = 5
     app.charBombs = 10
+    app.charStrength = 20
 
     # mobs
     app.mobs = app.roomType.mobs
@@ -201,6 +223,9 @@ def initImages(app):
     app.poopImage = app.loadImage('poop.png')
     app.poopImage = app.scaleImage(app.poopImage,.5)
     app.poopRad = app.poopImage.size[0]/2
+    app.daggerImage = app.loadImage("sword.png")
+    app.daggerImage = app.scaleImage(app.daggerImage,0.25)
+
     # character
     app.charSprite = app.loadImage('charSprite.png')
     app.charSprite = app.scaleImage(app.charSprite,.1)
@@ -288,7 +313,11 @@ def redrawAll(app,canvas):
     # draw projectiles the character has shot
     for proj in app.charProj:
         canvas.create_image(proj.cx, proj.cy, image = ImageTk.PhotoImage(app.poopImage))
-    
+    if app.daggerWield:
+        daggerImage = app.daggerImage.transpose(Image.FLIP_LEFT_RIGHT)
+        canvas.create_image(app.charX+20,app.charY,image = ImageTk.PhotoImage(daggerImage))
+
+
     # --mobs
     for mob in app.mobs:
         mobSprite = mob.sprites[mob.type][mob.spriteCounter]
@@ -370,7 +399,6 @@ def timerFired(app):
             while k < len(mob.proj):
                 proj = mob.proj[k]
                 oldX = proj.cx
-                oldY = proj.cy
                 proj.move()
                 if oldX > proj.cx:
                     proj.reflect = True
@@ -426,7 +454,7 @@ def timerFired(app):
                     (proj.cx + app.poopRad) <= (mob.cx + mob.width/2) and
                     (proj.cy + app.poopRad) >= (mob.cy - mob.height/2) and
                     (proj.cy + app.poopRad) <= (mob.cy + mob.height/2)):
-                    mob.gotHit(proj.strength*25,app)
+                    mob.gotHit(proj.strength*app.charStrength,app)
                     app.charProj.pop(j)
                 else:
                     j += 1
@@ -445,9 +473,10 @@ def timerFired(app):
         n = 0
         while n < len(app.items):
             item = app.items[n]
-            if distance(app.charX,app.charY,item.cx,item.cy) < 30:
+            if distance(app.charX,app.charY,item.cx,item.cy) < 25:
                 app.items.pop(n)
                 item.pickUp(app)
+                print(f"collected: {item}")
             else:
                 n += 1
 
@@ -510,7 +539,6 @@ def moveChar(app,amount):
                     app.curRoom = (newRow,newCol) 
                     app.changeRoom = True 
         elif newY < topWall:
-            print("up")
             if app.charX > app.width/2-30 and app.charX < app.width/2+30:
                 newCol =  app.curRoom[1]
                 newRow = app.curRoom[0] - 1
@@ -548,7 +576,8 @@ def moveChar(app,amount):
             app.changeRoom = False
             app.newRoom = 5
             app.isMoving = False
-            app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
+            app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]
+            app.items = app.roomType.items  
             app.mobs = app.roomType.mobs
             for mob in app.mobs:
                 mob.imageInit(app)
@@ -583,8 +612,23 @@ def keyReleased(app,event):
         app.movingUp = False
     elif event.key == "s":
         app.movingDown = False
-    elif event.key == "r":
+    elif event.key == "t":
         app.charHP = 5
+    elif event.key == "r" and app.dagger == True:
+        app.daggerWield = not app.daggerWield
+        for mob in app.mobs:
+            if distance(app.charX,app.charY,mob.cx,mob.cy) < 40:
+                mob.gotHit(5*app.charStrength,app)
+            if isinstance(mob,Boss):
+                for minion in mob.minionList:
+                    if distance(app.charX,app.charY,minion.cx,minion.cy) < 40:
+                        minion.gotHit(app.charStrength,app)
+            h = 0
+            while h < len(app.mobs):
+                if app.mobs[h].health <= 0:
+                    app.mobs.pop(h)
+                else:
+                    h += 1
     elif event.key == "e" and app.charBombs > 0:
         app.charBombs -= 1
         newBomb = Bomb(app.charX,app.charY)
@@ -602,6 +646,7 @@ def keyReleased(app,event):
             app.paused = True
     elif app.paused and event.key == "o":
         app.help = True
+    # shortcuts
     elif event.key == "0":
         bossLoc = None
         for i in range(7):
@@ -616,6 +661,7 @@ def keyReleased(app,event):
         for mob in app.mobs:
             mob.respawn(app)
             mob.imageInit(app)
+        app.items = app.roomType.items
         print(app.curRoom)
         app.charX = 500
         app.charY = 350
@@ -633,9 +679,45 @@ def keyReleased(app,event):
         for mob in app.mobs:
             mob.respawn(app)
             mob.imageInit(app)
+        app.items = app.roomType.items
         print(app.curRoom)
         app.charX = 500
         app.charY = 350
+    elif event.key == "8":
+        secretLoc = None
+        for i in range(7):
+            for j in range(7):
+                if app.map[i][j] == "secretRoom" or app.map[i][j] == "superSecretRoom":
+                    secretLoc = (i,j)
+        app.curRoom = secretLoc
+        app.newRoom = 5
+        app.isMoving = False
+        app.roomType = app.map[app.curRoom[0]][app.curRoom[1]]  
+        for mob in app.mobs:
+            mob.respawn(app)
+            mob.imageInit(app)
+        app.items = app.roomType.items
+        app.charX = 500
+        app.charY = 350
+    elif event.key == "Space":
+        locKey = None
+        for key in app.roomType.obsLocations:
+            if app.roomType.obsLocations[key] == app.closedChest:
+                app.roomType.obsLocations[key] = app.openChest
+                locKey = key
+        if locKey != None:
+            num = random.randint(0,2)
+            row,col = locKey
+            x = row*95 + random.randint(-15,15)
+            y = col*95 + random.randint(-15,15)
+            if num == 0:
+                item = Bomb(x,y)
+            elif num == 1:
+                item = Milk(x,y)
+            elif num == 2:
+                item = Dagger(x,y)
+            item.initImages(app)
+            app.items.append(item)
     # None of the movement keys are being pressed
     if (app.movingRight == False and app.movingLeft == False and 
         app.movingUp == False and app.movingDown == False):
