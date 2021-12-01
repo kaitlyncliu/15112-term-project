@@ -28,29 +28,33 @@ class Bomb(Item):
         
     def explode(self,app):
         # top door
-        if (self.cx > app.width/2 - 40) and (self.cx < app.width/2 + 40) and self.cy < 100:
+        if (self.cx > app.width/2 - 40) and (self.cx < app.width/2 + 40) and self.cy < 120:
             row = app.curRoom[0] - 1
             col = app.curRoom[1]
             if inBounds(app.map,row,col) and (app.map[row][col] == "secretRoom" or app.map[row][col] == "superSecretRoom"):
                 app.secretFound = app.curRoom
+                app.holeLoc = "top"
         # bottom door
-        elif (self.cx > app.width/2 - 40) and (self.cx < app.width/2 + 40) and self.cy > 425:
+        elif (self.cx > app.width/2 - 40) and (self.cx < app.width/2 + 40) and self.cy > 400:
             row = app.curRoom[0] + 1
             col = app.curRoom[1]
             if inBounds(app.map,row,col) and (app.map[row][col] == "secretRoom" or app.map[row][col] == "superSecretRoom"):
                 app.secretFound = app.curRoom
+                app.holeLoc = "bottom"
         # left door
-        elif (self.cy > app.height/2 - 40) and (self.cy < app.height/2 + 40) and self.cx < 100:
+        elif (self.cy > app.height/2 - 40) and (self.cy < app.height/2 + 40) and self.cx < 150:
             row = app.curRoom[0]
             col = app.curRoom[1] - 1
             if inBounds(app.map,row,col) and (app.map[row][col] == "secretRoom" or app.map[row][col] == "superSecretRoom"):
                 app.secretFound = app.curRoom
+                app.holeLoc = "left"
         # right door
-        elif (self.cy > app.height/2 - 40) and (self.cy < app.height/2 + 40) and self.cx > 400:
+        elif (self.cy > app.height/2 - 40) and (self.cy < app.height/2 + 40) and self.cx > 875:
             row = app.curRoom[0]
-            col = app.curRoom[1] - 1
+            col = app.curRoom[1] + 1
             if inBounds(app.map,row,col) and (app.map[row][col] == "secretRoom" or app.map[row][col] == "superSecretRoom"):
                 app.secretFound = app.curRoom
+                app.holeLoc = "right"
     
     def placed(self,app):
         self.image = self.lit
